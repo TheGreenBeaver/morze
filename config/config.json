@@ -5,6 +5,9 @@
     "database": "morze",
     "host": "127.0.0.1",
     "dialect": "postgres",
-    "timestamps": false
+    "define": {
+      "timestamps": false,
+      "underscored": true
+    }
   }
 }
