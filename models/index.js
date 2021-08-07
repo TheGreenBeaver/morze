@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-const { getEnv } = require('../util/misc');
+const { getEnv, getFileIsUsable } = require('../util/misc');
 const basename = path.basename(__filename);
 const env = getEnv();
 const config = require(__dirname + '/../config/config.json')[env];
@@ -18,9 +18,7 @@ if (config.use_env_variable) {
 
 fs
   .readdirSync(__dirname)
-  .filter(file => {
-    return (file.indexOf('.') !== 0) && (file !== basename) && (path.extname(file) === '.js');
-  })
+  .filter(file => getFileIsUsable(file, basename))
   .forEach(file => {
     const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
     db[model.name] = model;
