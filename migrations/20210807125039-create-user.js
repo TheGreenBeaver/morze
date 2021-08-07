@@ -37,7 +37,8 @@ module.exports = {
       },
       isVerified: {
         type: Sequelize.BOOLEAN,
-        defaultValue: false
+        defaultValue: false,
+        field: 'is_verified'
       },
       deletedAt: {
         type: Sequelize.DATE,

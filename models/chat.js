@@ -5,13 +5,15 @@ const {
 const { buildValidate } = require('../util/validation');
 module.exports = (sequelize, DataTypes) => {
   class Chat extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
+      this.belongsToMany(models.User, {
+        foreignKey: 'chat_id',
+        through: { model: models.UserChatMembership }
+      });
+      this.hasMany(models.Message, {
+        foreignKey: 'chat_id',
+        onDelete: 'CASCADE'
+      });
     }
   }
   Chat.init({

@@ -5,13 +5,17 @@ const {
 const { buildValidate } = require('../util/validation');
 module.exports = (sequelize, DataTypes) => {
   class Message extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
+      this.belongsTo(models.User, {
+        foreignKey: 'user_id'
+      });
+      this.belongsTo(models.Chat, {
+        foreignKey: 'chat_id'
+      });
+      this.hasMany(models.MessageAttachment, {
+        foreignKey: 'message_id',
+        onDelete: 'CASCADE'
+      });
     }
   }
   Message.init({
