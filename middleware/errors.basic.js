@@ -5,7 +5,7 @@ const httpStatus = require('http-status');
 
 function handleNotFoundError(err, req, res, next) {
   if (err instanceof EmptyResultError) {
-    return res.sendStatus(httpStatus.NOT_FOUND);
+    return res.status(httpStatus.NOT_FOUND).end();
   }
 
   next(err);
@@ -20,7 +20,7 @@ function handleValidationError(err, req, res, next) {
 }
 
 function handleUnknownError(err, req, res) {
-  return res.sendStatus(httpStatus.INTERNAL_SERVER_ERROR);
+  return res.status(httpStatus.INTERNAL_SERVER_ERROR).end();
 }
 
 module.exports = {

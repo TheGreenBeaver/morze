@@ -12,13 +12,14 @@ async function handleAuthorizedRequest(req, res, next) {
   const authToken = await AuthToken.findByPk(key, {
     include: {
       model: User,
-      include: { model: Chat, attributes: [], as: 'chats' }
+      include: { model: Chat, attributes: [], as: 'chats' },
+      as: 'user'
     }
   });
   if (!authToken) {
     return next(new AuthError(AuthError.TYPES.unauthorized));
   }
-  req.user = authToken.user;
+  req.user = authToken.user.dataValues;
   next();
 }
 

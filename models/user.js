@@ -14,7 +14,8 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'user_id',
         through: {
           model: models.UserChatMembership
-        }
+        },
+        as: 'chats'
       });
       this.hasMany(models.Message, {
         foreignKey: 'user_id',

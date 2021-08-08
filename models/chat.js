@@ -8,7 +8,8 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       this.belongsToMany(models.User, {
         foreignKey: 'chat_id',
-        through: { model: models.UserChatMembership }
+        through: { model: models.UserChatMembership },
+        as: 'users'
       });
       this.hasMany(models.Message, {
         foreignKey: 'chat_id',

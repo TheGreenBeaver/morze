@@ -1,12 +1,14 @@
 const express = require('express');
 const { User } = require('../models/index');
-const httpStatus = require('http-status');
-const { generateToken, hash, getB36 } = require('../util/cryptography');
+const { generateToken, hash, getB36, checkToken, TOKEN_STATUS, parseB36 } = require('../util/cryptography');
 const { serializeSelf, serializeUser } = require('../serializers/users');
 const { sendMail } = require('../mail/index');
 const methodHandlers = require('../util/method-handlers');
 const { Op } = require('sequelize');
 const useMiddleware = require('../middleware/index');
+const httpStatus = require('http-status');
+const settings = require('../config/settings');
+const { capitalize } = require('lodash');
 
 
 const router = express.Router();
@@ -28,9 +30,26 @@ router.post('/', async (req, res, next) => {
 
     const verificationToken = await generateToken(savedUser);
     // TODO: clean up email sending
-    await sendMail(`http://localhost:3000/verify/${getB36(savedUser.id)}/${verificationToken}`);
+    await sendMail(`localhost:3000/confirm/verify/${getB36(savedUser.id)}/${verificationToken}`);
 
-    return res.status(httpStatus.CREATED).json(serializeSelf(savedUser));
+    await methodHandlers.authorizeWithToken({ username: savedUser.username, password: req.body.password }, res, next);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post('/verify', async (req, res, next) => {
+  try {
+    const user = await User.findByPk(parseB36(req.body.uid));
+    const status = checkToken(user, req.body.token);
+
+    if (status === TOKEN_STATUS.OK) {
+      user.setDataValue('isVerified', true);
+      const savedUser = await user.save();
+      return res.json({ isVerified: savedUser.isVerified });
+    }
+
+    return res.status(httpStatus.BAD_REQUEST).json({ [settings.ERR_FIELD]: [`${capitalize(status)} Link`] });
   } catch (e) {
     next(e);
   }
@@ -56,3 +75,5 @@ router.get('/:id', async (req, res, next) => {
     return methodHandlers.find({ Model: User, serializer: serializeUser }, req, res, next);
   }
 );
+
+module.exports = router;

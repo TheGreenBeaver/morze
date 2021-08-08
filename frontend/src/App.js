@@ -1,24 +1,62 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Switch, Route, useLocation, Redirect } from 'react-router-dom';
+import { getDefaultRoute, pathIsAvailable, routeIsIncluded, routerConfig } from './util/routing';
+import { clearError } from './store/actions/general';
+import ErrorPage from './pages/error-page';
+import FullScreenLayout from './components/full-screen-layout';
+import OneCardLayout from './components/one-card-layout';
+import { getCurrentUserData } from './api/auth';
+import useErrorHandler from './hooks/use-error-handler';
+import { setUserData } from './store/actions/account';
+
 
 function App() {
+  const dispatch = useDispatch();
+  const { pathname } = useLocation();
+
+  const { isAuthorized, userData } = useSelector(state => state.account);
+  const { error } = useSelector(state => state.general);
+
+  const handleBackendError = useErrorHandler();
+
+  const userState = [isAuthorized, userData?.isVerified];
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, [pathname]);
+
+  useEffect(() => {
+    const requestCurrentUserData = async () => {
+      try {
+        const data = await getCurrentUserData();
+        dispatch(setUserData(data));
+      } catch (e) {
+        handleBackendError(e)
+      }
+    };
+    if (isAuthorized) {
+      requestCurrentUserData();
+    }
+  }, [isAuthorized]);
+
+  if (error) {
+    return <ErrorPage />;
+  }
+
+  if (isAuthorized && !userData) {
+    return 'Loading...';
+  }
+
+  const Layout = userState.every(attr => !!attr) ? FullScreenLayout : OneCardLayout;
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Layout>
+      <Switch>
+        {routerConfig.map(config => routeIsIncluded(config, ...userState) && <Route {...config} key={config.path} />)}
+        {!pathIsAvailable(pathname, ...userState) && <Redirect to={getDefaultRoute(...userState)} />}
+      </Switch>
+    </Layout>
   );
 }
 

@@ -1,4 +1,7 @@
 const httpStatus = require('http-status');
+const { compareHashed } = require('./cryptography');
+const { AuthError } = require('./custom-errors');
+const { AuthToken, User } = require('../models/index');
 
 
 async function find({ Model, serializer = v => v, options }, req, res, next) {
@@ -28,6 +31,18 @@ async function create({ Model, serializer = v => v }, req, res, next) {
   }
 }
 
+async function authorizeWithToken({ username, password }, res, next) {
+  const user = await User.findOne({ where: { username } });
+  if (!user) {
+    next(new AuthError(AuthError.TYPES.username));
+  } else if (!compareHashed(password, user.password)) {
+    next(new AuthError(AuthError.TYPES.password));
+  } else {
+    const authToken = await AuthToken.create({ user_id: user.id });
+    return res.json({ token: authToken.key });
+  }
+}
+
 module.exports = {
-  find, list, create
+  find, list, create, authorizeWithToken
 };
