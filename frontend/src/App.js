@@ -9,6 +9,7 @@ import OneCardLayout from './components/one-card-layout';
 import { getCurrentUserData } from './api/auth';
 import useErrorHandler from './hooks/use-error-handler';
 import { setUserData } from './store/actions/account';
+import LoadingScreen from './components/loading-screen';
 
 
 function App() {
@@ -45,7 +46,7 @@ function App() {
   }
 
   if (isAuthorized && !userData) {
-    return 'Loading...';
+    return <LoadingScreen />;
   }
 
   const Layout = userState.every(attr => !!attr) ? FullScreenLayout : OneCardLayout;
