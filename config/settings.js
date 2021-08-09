@@ -8,11 +8,13 @@ const API_ROOT = `/api/v${API_VERSION}`;
 const PORT = 8000;
 const ERR_FIELD = 'nonFieldErrors';
 const EXPIRATION_TIME = 60 * 60 * 24 * 5; // 5 days
+const WS_PATH = '/ws';
 
 module.exports = {
   STATIC_ROOT,
   PORT,
   API_ROOT,
   ERR_FIELD,
-  EXPIRATION_TIME
+  EXPIRATION_TIME,
+  WS_PATH
 };

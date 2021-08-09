@@ -1,26 +1,15 @@
-const { AuthToken, User, Chat } = require('../models/index');
-const { AuthError } = require('../util/custom-errors');
+const { User } = require('../models/index');
+const { checkAuthorization } = require('../util/method-handlers');
 
 
-async function handleAuthorizedRequest(req, res, next) {
-  const header = req.get('Authorization')
-  if (!header) {
-    return next(new AuthError(AuthError.TYPES.unauthorized));
-  }
-
-  const key = header.replace('Token ', '');
-  const authToken = await AuthToken.findByPk(key, {
-    include: {
-      model: User,
-      include: { model: Chat, attributes: [], as: 'chats' },
-      as: 'user'
-    }
-  });
-  if (!authToken) {
-    return next(new AuthError(AuthError.TYPES.unauthorized));
-  }
-  req.user = authToken.user.dataValues;
-  next();
+function handleAuthorizedRequest(req, res, next) {
+  const header = req.get('Authorization');
+  checkAuthorization(header, { include: { model: User, as: 'user' } })
+    .then(authToken => {
+      req.user = authToken.user.dataValues;
+      next();
+    })
+    .catch(next);
 }
 
 module.exports = {

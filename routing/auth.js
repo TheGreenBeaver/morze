@@ -10,7 +10,7 @@ const router = express.Router();
 useMiddleware(router, { prefix: 'auth.', prop: 'post', routes: ['/log_out'] });
 
 router.post('/sign_in', (req, res, next) =>
-  methodHandlers.authorizeWithToken(req.body, res, next).catch(next)
+  methodHandlers.authorizeWithToken(req.body, res).catch(next)
 );
 
 router.post('/log_out', async (req, res, next) => {

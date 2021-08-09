@@ -31,18 +31,42 @@ async function create({ Model, serializer = v => v }, req, res, next) {
   }
 }
 
-async function authorizeWithToken({ username, password }, res, next) {
+async function authorizeWithToken({ username, password }, res) {
   const user = await User.findOne({ where: { username } });
   if (!user) {
-    next(new AuthError(AuthError.TYPES.username));
+    throw new AuthError(AuthError.TYPES.username);
   } else if (!compareHashed(password, user.password)) {
-    next(new AuthError(AuthError.TYPES.password));
+    throw new AuthError(AuthError.TYPES.password);
   } else {
     const authToken = await AuthToken.create({ user_id: user.id });
     return res.json({ token: authToken.key });
   }
 }
 
+function checkAuthorization(indicator, queryOptions) {
+  return new Promise((resolve, reject) => {
+    if (!indicator) {
+      return reject(new AuthError(AuthError.TYPES.unauthorized));
+    }
+
+    const key = indicator.replace('Token ', '');
+
+    AuthToken
+      .findByPk(key, queryOptions)
+      .then(authToken => {
+        if (!authToken) {
+          reject(new AuthError(AuthError.TYPES.unauthorized))
+        }
+        resolve(authToken);
+      })
+      .catch(e => reject(e));
+  });
+}
+
 module.exports = {
-  find, list, create, authorizeWithToken
+  find,
+  list,
+  create,
+  authorizeWithToken,
+  checkAuthorization
 };

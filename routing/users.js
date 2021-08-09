@@ -32,7 +32,7 @@ router.post('/', async (req, res, next) => {
     // TODO: clean up email sending
     await sendMail(`localhost:3000/confirm/verify/${getB36(savedUser.id)}/${verificationToken}`);
 
-    await methodHandlers.authorizeWithToken({ username: savedUser.username, password: req.body.password }, res, next);
+    await methodHandlers.authorizeWithToken({ username: savedUser.username, password: req.body.password }, res);
   } catch (e) {
     next(e);
   }
