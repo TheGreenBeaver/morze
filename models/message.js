@@ -16,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'message_id',
         onDelete: 'CASCADE'
       });
+      this.hasMany(models.UserChatMembership, {
+        foreignKey: 'last_read_msg_id',
+        as: 'lastReadMessage',
+        onDelete: 'SET NULL'
+      });
     }
   }
   Message.init({

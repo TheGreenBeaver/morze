@@ -43,13 +43,11 @@ async function authorizeWithToken({ username, password }, res) {
   }
 }
 
-function checkAuthorization(indicator, queryOptions) {
+function checkAuthorization(key, queryOptions) {
   return new Promise((resolve, reject) => {
-    if (!indicator) {
+    if (!key) {
       return reject(new AuthError(AuthError.TYPES.unauthorized));
     }
-
-    const key = indicator.replace('Token ', '');
 
     AuthToken
       .findByPk(key, queryOptions)

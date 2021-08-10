@@ -13,13 +13,13 @@ function useErrorHandler() {
   function handleBackendError(error) {
     const { response: { status } } = error;
 
-    if (status < 403 || status == null) {
+    if (status < 401 || status == null) {
       return false;
     }
 
     let text;
     switch (status) {
-      case 403:
+      case 401:
         enqueueSnackbar('Please re-log into your account', { variant: 'info' });
         dispatch(logOutAction());
         return true;

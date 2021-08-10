@@ -5,7 +5,10 @@ const {
 module.exports = (sequelize, DataTypes) => {
   class UserChatMembership extends Model {
     static associate(models) {
-      // define association here
+      this.belongsTo(models.Message, {
+        foreignKey: 'last_read_msg_id',
+        as: 'lastReadMessage'
+      });
     }
   }
   UserChatMembership.init({

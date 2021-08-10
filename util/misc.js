@@ -31,15 +31,6 @@ function getUniqueKeyName(sqlData) {
     .replace('_key', '');
 }
 
-function formatWsResponse(data) {
-  return JSON.stringify({
-    response: typeof data === 'object'
-      ? { data }
-      : { status: data, data: {} }
-  });
-}
-
-
 module.exports = {
   getEnv,
   getFileIsUsable,
@@ -47,5 +38,4 @@ module.exports = {
   isActive,
   getValidationErrJson,
   getUniqueKeyName,
-  formatWsResponse
 };

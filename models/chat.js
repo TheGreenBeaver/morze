@@ -20,9 +20,8 @@ module.exports = (sequelize, DataTypes) => {
   Chat.init({
     name: {
       type: DataTypes.STRING(50),
-      allowNull: false,
 
-      validate: buildValidate(['required', { name: 'len', args: [0, 50] }], 'name')
+      validate: buildValidate([{ name: 'len', args: [0, 50] }], 'name')
     }
   }, {
     sequelize,

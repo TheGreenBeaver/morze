@@ -8,8 +8,12 @@ function clearCredentials() {
   localStorage.removeItem(TOKEN_FIELD);
 }
 
+function getToken() {
+  return localStorage.getItem(TOKEN_FIELD);
+}
+
 function getIsAuthorized() {
-  return !!localStorage.getItem(TOKEN_FIELD);
+  return !!getToken();
 }
 
 function getHeaders(headers = {}) {
@@ -20,5 +24,6 @@ export {
   saveCredentials,
   clearCredentials,
   getIsAuthorized,
-  getHeaders
+  getHeaders,
+  getToken
 };

@@ -10,11 +10,15 @@ import { getCurrentUserData } from './api/auth';
 import useErrorHandler from './hooks/use-error-handler';
 import { setUserData } from './store/actions/account';
 import LoadingScreen from './components/loading-screen';
+import { useCookies } from 'react-cookie';
+import { getToken } from './util/auth';
 
 
 function App() {
   const dispatch = useDispatch();
   const { pathname } = useLocation();
+
+  const [cookies, setCookie] = useCookies();
 
   const { isAuthorized, userData } = useSelector(state => state.account);
   const { error } = useSelector(state => state.general);
@@ -37,6 +41,9 @@ function App() {
       }
     };
     if (isAuthorized) {
+      if (!cookies.Token) {
+        setCookie('Token', getToken(), { path: '/' });
+      }
       requestCurrentUserData();
     }
   }, [isAuthorized]);

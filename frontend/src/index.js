@@ -9,22 +9,25 @@ import { ThemeProvider } from '@material-ui/core/styles';
 import theme from './theme';
 import Container from '@material-ui/core/Container';
 import AlertSystem from './components/alert-system';
+import { CookiesProvider } from 'react-cookie';
 
 
 ReactDOM.render(
   <React.StrictMode>
-    <CssBaseline />
-    <ThemeProvider theme={theme}>
-      <AlertSystem>
-        <Container>
-          <Provider store={store}>
-            <Router>
-              <App />
-            </Router>
-          </Provider>
-        </Container>
-      </AlertSystem>
-    </ThemeProvider>
+    <CookiesProvider>
+      <CssBaseline />
+      <ThemeProvider theme={theme}>
+        <AlertSystem>
+          <Container>
+            <Provider store={store}>
+              <Router>
+                <App />
+              </Router>
+            </Provider>
+          </Container>
+        </AlertSystem>
+      </ThemeProvider>
+    </CookiesProvider>
   </React.StrictMode>,
   document.getElementById('root')
 );
