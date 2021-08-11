@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
   class MessageAttachment extends Model {
     static associate(models) {
       this.belongsTo(models.Message, {
-        foreignKey: 'message_id'
+        foreignKey: 'message_id',
       });
     }
   }

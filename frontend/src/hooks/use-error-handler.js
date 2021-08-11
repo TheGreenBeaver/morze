@@ -27,7 +27,7 @@ function useErrorHandler() {
         text = 'Page not found';
         break;
       default:
-        text = status >= 500 ? 'Server Error' : 'Unknown Error';
+        text = 'Server Error';
     }
     if (isAuthorized) {
       dispatch(setError({ status, text }));

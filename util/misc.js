@@ -31,6 +31,14 @@ function getUniqueKeyName(sqlData) {
     .replace('_key', '');
 }
 
+function dummyPromise() {
+  return new Promise(resolve => resolve());
+}
+
+function noOp() {
+  return null;
+}
+
 module.exports = {
   getEnv,
   getFileIsUsable,
@@ -38,4 +46,6 @@ module.exports = {
   isActive,
   getValidationErrJson,
   getUniqueKeyName,
+  dummyPromise,
+  noOp
 };

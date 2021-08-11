@@ -1,57 +1,61 @@
 const { Chat, User } = require('../models/index');
 const { Op } = require('sequelize');
 const { differenceWith } = require('lodash');
-const httpStatus = require('http-status');
-const { formatWsResponse, ws500, broadcast } = require('../util/ws');
 const { serializeChat } = require('../serializers/chats');
 
 
-function leave(data, { ws }) {
+function leave(data, { user, err, resp, broadcast }) {
 
 }
 
-function kick(data, { ws, user }) {
+function kick(data, { user, err, resp, broadcast }) {
 
 }
 
-function create(data, { ws, user, wsServer }) {
+function create(data, { user, err, broadcast }) {
   const invitedIds = data.invited || [];
   User
     .findAndCountAll({ where: { id: { [Op.in]: invitedIds } } })
     .then(({ count, rows: invitedUsers }) => {
       if (count < invitedIds.length) {
         const invalidIds = differenceWith(invitedIds, invitedUsers, (i, u) => u.id === i);
-        ws.send(formatWsResponse({
-          status: httpStatus.BAD_REQUEST,
-          data: { invited: [`No users found with id ${invalidIds.join(', ')}`] }
-        }));
+        err({ invited: [`No users found with ids of ${invalidIds.join(', ')}`] });
       } else {
         Chat
           .create({ name: data.name })
-          .then(newChat => {
+          .then(newChat =>
             newChat
-              .setUsers([...invitedUsers, user])
-              .then(() => broadcast(wsServer, serializeChat(newChat)));
-          })
-          .catch(() => ws500(ws))
+              .setUsers([...invitedUsers, { user, isAdmin: true }])
+              .then(() => broadcast(serializeChat(newChat)))
+          )
       }
     })
-    .catch(() => ws500(ws))
+    .catch(err)
 }
 
-function invite(data, { ws, user }) {
-
-}
-
-function list(data, { ws, user }) {
+function invite(data, { user, err, resp, broadcast }) {
 
 }
 
-function edit(data, { ws, user }) {
+function list(data, { user, resp, err }) {
+  user.getChats()
+    .then(chats => resp(chats.map(chat => serializeChat(chat))))
+    .catch(err)
+}
+
+function edit(data, { user, err, resp, broadcast }) {
+
+}
+
+function remove(data, { user, err, resp, broadcast }) {
+	
+}
+
+function makeAdmin(data, { user, err, resp, broadcast }) {
 
 }
 
 
 module.exports = {
-  leave, kick, create, invite, list, edit
+  leave, kick, create, invite, list, edit, remove, makeAdmin
 };

@@ -7,9 +7,16 @@ const account = {
 
 const general = {
   SET_ERROR: 'SET_ERROR',
+  SET_WS_READY: 'SET_WS_READY',
 };
+
+const chats = {
+  SET_CHATS: 'SET_CHATS',
+  ADD_CHAT: 'ADD_CHAT',
+}
 
 export {
   account,
-  general
+  general,
+  chats
 };

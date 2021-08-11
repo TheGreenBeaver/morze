@@ -43,21 +43,21 @@ async function authorizeWithToken({ username, password }, res) {
   }
 }
 
-function checkAuthorization(key, queryOptions) {
+function checkAuthorization(key) {
   return new Promise((resolve, reject) => {
     if (!key) {
       return reject(new AuthError(AuthError.TYPES.unauthorized));
     }
 
     AuthToken
-      .findByPk(key, queryOptions)
+      .findByPk(key, { include: { model: User, as: 'user' } })
       .then(authToken => {
         if (!authToken) {
           reject(new AuthError(AuthError.TYPES.unauthorized))
         }
         resolve(authToken);
       })
-      .catch(e => reject(e));
+      .catch(reject);
   });
 }
 

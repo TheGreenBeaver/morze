@@ -1,5 +1,5 @@
 function serializeChat(chat) {
-  return { name: chat.name };
+  return { name: chat.name, id: chat.id };
 }
 
 module.exports = {

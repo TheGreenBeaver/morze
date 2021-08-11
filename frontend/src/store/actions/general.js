@@ -8,7 +8,13 @@ const setError = error => ({
 
 const clearError = () => setError(null);
 
+const setWsReady = isReady => ({
+  type: general.SET_WS_READY,
+  isReady
+})
+
 export {
   setError,
-  clearError
+  clearError,
+  setWsReady
 };

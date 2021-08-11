@@ -12,6 +12,7 @@ import { setUserData } from './store/actions/account';
 import LoadingScreen from './components/loading-screen';
 import { useCookies } from 'react-cookie';
 import { getToken } from './util/auth';
+import WsContext from './contexts/ws-context';
 
 
 function App() {
@@ -59,12 +60,14 @@ function App() {
   const Layout = userState.every(attr => !!attr) ? FullScreenLayout : OneCardLayout;
 
   return (
-    <Layout>
-      <Switch>
-        {routerConfig.map(config => routeIsIncluded(config, ...userState) && <Route {...config} key={config.path} />)}
-        {!pathIsAvailable(pathname, ...userState) && <Redirect to={getDefaultRoute(...userState)} />}
-      </Switch>
-    </Layout>
+    <WsContext>
+      <Layout>
+        <Switch>
+          {routerConfig.map(config => routeIsIncluded(config, ...userState) && <Route {...config} key={config.path} />)}
+          {!pathIsAvailable(pathname, ...userState) && <Redirect to={getDefaultRoute(...userState)} />}
+        </Switch>
+      </Layout>
+    </WsContext>
   );
 }
 

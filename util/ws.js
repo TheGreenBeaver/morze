@@ -1,5 +1,7 @@
 const httpStatus = require('http-status');
 const WebSocket = require('ws');
+const { ValidationError } = require('sequelize');
+const { getValidationErrJson, dummyPromise, noOp } = require('./misc');
 
 
 const EVENTS = {
@@ -7,29 +9,85 @@ const EVENTS = {
   connection: 'connection',
   message: 'message',
   error: 'error',
+  open: 'open',
 };
 
-function formatWsResponse(response) {
-  return JSON.stringify({ response });
+/**
+ * @typedef WsResponse
+ * @type {Object}
+ * @property {string|undefined} url
+ * @property {object|undefined} data
+ * @property {number|undefined} status
+ */
+
+/**
+ * @param {WsResponse} response
+ * @param {WebSocket} ws
+ * @returns {string}
+ */
+function wsResp(response, ws) {
+  ws.send(JSON.stringify(response));
 }
 
-function ws500(ws) {
-  ws.send(formatWsResponse({ status: httpStatus.INTERNAL_SERVER_ERROR }));
+/**
+ *
+ * @param {WebSocket} ws
+ * @param {string} code
+ * @param {string=} endpoint
+ */
+function wsErr(ws, code, endpoint) {
+  const toSend = { status: httpStatus[code] };
+  if (endpoint) {
+    toSend.url = endpoint;
+  }
+  wsResp(toSend, ws);
 }
 
-// Provide 'current' only when broadcasting to everyone except current
-function broadcast(wsServer, data, current) {
+/**
+ *
+ * @param {any} wsServer
+ * @param {WsResponse} response
+ * @param {WebSocket=} current provide this only when broadcasting to everyone except current
+ * @param {function(): Promise=} extraCondition
+ */
+function wsBroadcast(
+  wsServer, response,
+  { current, extraCondition = dummyPromise } = {}
+) {
   wsServer.clients.forEach(client => {
-    if ((!current || client !== current) && client.readyState === WebSocket.OPEN) {
-      client.send(formatWsResponse(data));
+    if (
+      (!current || client !== current) &&
+      client.readyState === WebSocket.OPEN
+    ) {
+      extraCondition(client).then(() => wsResp(response, client)).catch(noOp);
     }
   });
 }
 
-module.exports = {
-  formatWsResponse,
-  ws500,
-  broadcast,
+function handleError(ws, endpoint, e) {
+  const custom = data => wsResp({
+    status: httpStatus.BAD_REQUEST,
+    url: endpoint,
+    data
+  }, ws);
+  const e500 = () => wsErr(ws, 'INTERNAL_SERVER_ERROR', endpoint);
 
-  EVENTS
+  if (e instanceof ValidationError) {
+    custom(getValidationErrJson(e));
+  } else if (e instanceof Error) {
+    e500();
+  } else if (typeof e === 'object') {
+    custom(e);
+  } else {
+    e500();
+  }
+}
+
+module.exports = {
+  wsResp,
+  wsErr,
+  wsBroadcast,
+  handleError,
+
+  EVENTS,
 };

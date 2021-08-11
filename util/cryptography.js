@@ -3,25 +3,52 @@ const { now } = require('./misc');
 require('dotenv').config();
 const settings = require('../config/settings');
 
-
+/**
+ *
+ * @param {string} value a string to encrypt
+ * @returns {string} hmac256-hashed string
+ */
 function hash(value) {
   const hmac = crypto.createHmac('sha256', process.env.SECRET_KEY, { encoding: 'utf8' });
   hmac.update(value);
   return hmac.digest('hex');
 }
 
+/**
+ *
+ * @param {string} plain a non-encrypted string
+ * @param {string} hashed
+ * @returns {boolean} true if the plain string gives the same hash
+ */
 function compareHashed(plain, hashed) {
   return hash(plain) === hashed;
 }
 
+/**
+ *
+ * @param {number} value
+ * @returns {string}
+ */
 function getB36(value) {
   return value.toString(36);
 }
 
+/**
+ *
+ * @param {string} value
+ * @returns {number}
+ */
 function parseB36(value) {
   return parseInt(value, 36);
 }
 
+/**
+ *
+ * @param {Object} seedObj the object providing the hash seed
+ * @param {Array<string>} usedFields the seedObj fields to use
+ * @param {number} timestamp
+ * @returns {string}
+ */
 function generateToken(
   seedObj,
   { usedFields = ['name', 'username'], timestamp } = {}
@@ -39,6 +66,13 @@ const TOKEN_STATUS = {
   OK: 'OK'
 };
 
+/**
+ *
+ * @param {Object} seedObj the object providing the hash seed
+ * @param {string} token
+ * @param {Array<string>} usedFields the seedObj fields to use
+ * @returns {string}
+ */
 function checkToken(
   seedObj, token,
   { usedFields = ['name', 'username'] } = {}

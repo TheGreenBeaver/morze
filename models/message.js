@@ -14,7 +14,8 @@ module.exports = (sequelize, DataTypes) => {
       });
       this.hasMany(models.MessageAttachment, {
         foreignKey: 'message_id',
-        onDelete: 'CASCADE'
+        onDelete: 'CASCADE',
+        as: 'attachments'
       });
       this.hasMany(models.UserChatMembership, {
         foreignKey: 'last_read_msg_id',

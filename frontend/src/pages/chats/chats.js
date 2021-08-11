@@ -1,44 +1,41 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import { useWs } from '../../contexts/ws-context';
+import { WS_ENDPOINTS } from '../../util/constants';
+import { useSelector } from 'react-redux';
+import useOnWs from '../../hooks/use-on-ws';
 
 
 function Chats() {
 
-  const socketRef = useRef(null);
+  const { send } = useWs()
+  const { chats } = useSelector(state => state.chats);
 
-  useEffect(() => {
-    const socket = new WebSocket('ws://localhost:8000/ws');
-
-    socket.onopen = ev => {
-      console.log({
-        ev,
-        what: 'open'
-      });
-    }
-
-    socket.onmessage = ev => {
-      console.log({
-        ev,
-        what: 'message'
-      });
-    }
-
-    socketRef.current = socket;
-  }, []);
+  useOnWs(() => send(WS_ENDPOINTS.chats.list));
 
   return (
     <div>
-      CHATS PAGE
+      <ul>
+        {chats.map(chat => <li key={chat.id}>{chat.name}</li>)}
+      </ul>
       <button
         onClick={() => {
-          if (socketRef.current) {
-            socketRef.current.send(JSON.stringify({
-              url: 'chats/create',
-              data: { name: 'Second Chat WOOOOOO!', invited: [3] }
-            }));
-          }
+          send(
+            WS_ENDPOINTS.messages.send,
+            { text: 'First Message', chatId: 6 }
+          );
         }}
       >
-        asdf
+        send msg
+      </button>
+      <button
+        onClick={() => {
+          send(
+            WS_ENDPOINTS.messages.send,
+            { text: 'Second Message', chatId: 2 }
+          );
+        }}
+      >
+        send msg to c1
       </button>
     </div>
   );
