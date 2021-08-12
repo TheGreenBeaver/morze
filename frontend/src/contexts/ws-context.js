@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { node } from 'prop-types';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { WS_ENDPOINTS} from '../util/constants';
 import useErrorHandler from '../hooks/use-error-handler';
 import { addChat, setChats } from '../store/actions/chats';
 import { setWsReady } from '../store/actions/general';
+import useAuth from '../hooks/use-auth';
 
 
 const Context = createContext({
@@ -20,7 +21,7 @@ function useWs() {
 function WsContext({ children }) {
   const socketRef = useRef(null);
   const dispatch = useDispatch();
-  const { isAuthorized } = useSelector(state => state.account);
+  const { isAuthorized } = useAuth();
   const [unhandledError, setUnhandledError] = useState(null);
   const handleBackendError = useErrorHandler();
 

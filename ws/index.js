@@ -44,7 +44,7 @@ function useWs(server) {
             }
             wsBroadcast(...args);
           }
-        });
+        }).catch(e => handleError(ws, endpoint, e));
       } else {
         wsErr(ws, 'NOT_IMPLEMENTED');
       }

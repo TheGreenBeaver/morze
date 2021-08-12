@@ -7,10 +7,9 @@ import Button from '@material-ui/core/Button';
 import StyledLink from '../../components/styled-link';
 import useFormStyles from '../../theme/form';
 import { signUp } from '../../api/auth';
-import { useDispatch } from 'react-redux';
-import { signInAction } from '../../store/actions/account';
 import useErrorHandler from '../../hooks/use-error-handler';
 import { useSnackbar } from 'notistack';
+import useAuth from '../../hooks/use-auth';
 
 
 const FIELDS = [
@@ -27,17 +26,17 @@ const yupConfig = FIELDS.reduce((config, field) => ({
 }), {});
 
 function SignUp() {
-  const dispatch = useDispatch();
   const styles = useFormStyles();
   const handleBackendError = useErrorHandler();
   const { enqueueSnackbar } = useSnackbar();
+  const { saveCredentials } = useAuth();
 
   function onSubmit(values, formikHelpers) {
     formikHelpers.setSubmitting(true);
     signUp(values)
       .then(data => {
         enqueueSnackbar('Signed up for Morze successfully!');
-        dispatch(signInAction(data.token));
+        saveCredentials(data.token);
       })
       .catch(e => {
         formikHelpers.setSubmitting(false);

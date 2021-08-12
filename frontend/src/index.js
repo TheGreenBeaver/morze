@@ -4,28 +4,33 @@ import App from './App';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { store } from './store';
-import CssBaseline from '@material-ui/core/CssBaseline';
+import ScopedCssBaseline from '@material-ui/core/ScopedCssBaseline';
 import { ThemeProvider } from '@material-ui/core/styles';
 import theme from './theme';
-import Container from '@material-ui/core/Container';
 import AlertSystem from './components/alert-system';
 import { CookiesProvider } from 'react-cookie';
+import WsContext from './contexts/ws-context';
+import Container from '@material-ui/core/Container';
+import './theme/reset.css';
 
 
 ReactDOM.render(
   <React.StrictMode>
     <CookiesProvider>
-      <CssBaseline />
       <ThemeProvider theme={theme}>
-        <AlertSystem>
-          <Container>
+        <ScopedCssBaseline>
+          <AlertSystem>
             <Provider store={store}>
               <Router>
-                <App />
+                <WsContext>
+                  <Container>
+                    <App />
+                  </Container>
+                </WsContext>
               </Router>
             </Provider>
-          </Container>
-        </AlertSystem>
+          </AlertSystem>
+        </ScopedCssBaseline>
       </ThemeProvider>
     </CookiesProvider>
   </React.StrictMode>,

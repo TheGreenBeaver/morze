@@ -2,6 +2,7 @@ const httpStatus = require('http-status');
 const WebSocket = require('ws');
 const { ValidationError } = require('sequelize');
 const { getValidationErrJson, dummyPromise, noOp } = require('./misc');
+const { CustomError } = require('../util/custom-errors');
 
 
 const EVENTS = {
@@ -48,7 +49,7 @@ function wsErr(ws, code, endpoint) {
  * @param {any} wsServer
  * @param {WsResponse} response
  * @param {WebSocket=} current provide this only when broadcasting to everyone except current
- * @param {function(): Promise=} extraCondition
+ * @param {function(WebSocket): Promise=} extraCondition
  */
 function wsBroadcast(
   wsServer, response,
@@ -64,6 +65,10 @@ function wsBroadcast(
   });
 }
 
+function onlyMembers(members, client) {
+  return new Promise((resolve, reject) => members.includes(client.user) ? resolve() : reject());
+}
+
 function handleError(ws, endpoint, e) {
   const custom = data => wsResp({
     status: httpStatus.BAD_REQUEST,
@@ -74,6 +79,8 @@ function handleError(ws, endpoint, e) {
 
   if (e instanceof ValidationError) {
     custom(getValidationErrJson(e));
+  } else if (e instanceof CustomError) {
+    custom(e.data);
   } else if (e instanceof Error) {
     e500();
   } else if (typeof e === 'object') {
@@ -88,6 +95,7 @@ module.exports = {
   wsErr,
   wsBroadcast,
   handleError,
+  onlyMembers,
 
   EVENTS,
 };

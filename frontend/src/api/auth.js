@@ -1,5 +1,4 @@
 import axios from './index';
-import { getHeaders } from '../util/auth';
 
 
 function signIn(credentials) {
@@ -10,8 +9,8 @@ function signUp(credentials) {
   return axios.post('/users', credentials).then(({ data }) => data);
 }
 
-function getCurrentUserData() {
-  return axios.get('/users/me', { headers: getHeaders() }).then(({ data }) => data);
+function getCurrentUserData(headers) {
+  return axios.get('/users/me', { headers }).then(({ data }) => data);
 }
 
 function confirm(type, uid, token) {

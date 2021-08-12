@@ -1,20 +1,19 @@
 const { serializeMessage } = require('../serializers/messages');
-const { Message } = require('../models/index');
+const { NoSuchError } = require('../util/custom-errors');
 
 
-function send(data, { user, err, broadcast }) {
+function send(data, { user, broadcast }) {
   const { chatId, text, attachments } = data;
 
-  user
+  return user
     .getChats({ where: { id: chatId } })
     .then(matchingChats => {
       if (!matchingChats.length) {
-        err({ chat: [`No chat with id ${chatId} available for ${user.username}`] });
-        return;
+        throw new NoSuchError('chat', chatId);
       }
 
       const theChat = matchingChats[0];
-      theChat
+      return theChat
         .createMessage({ text, attachments: attachments || [], user_id: user.id })
         .then(newMessage =>
           broadcast(
@@ -26,7 +25,6 @@ function send(data, { user, err, broadcast }) {
           )
         )
     })
-    .catch(err);
 }
 
 function edit(data, { user, err, resp, broadcast }) {
@@ -41,22 +39,21 @@ function markRead(data, { user, err, resp, broadcast }) {
 
 }
 
-function list(data, { user, err, resp }) {
+function list(data, { user, resp }) {
   const { chatId } = data;
 
-  user
+  // TODO: Pagination
+  return user
     .getChats({ where: { id: chatId } })
     .then(matchingChats => {
       if (!matchingChats.length) {
-        err({ chat: [`No chat with id ${chatId} available for ${user.username}`] });
-        return;
+        throw new NoSuchError('chat', chatId);
       }
 
-      Message
-        .findAll({ where: { chat_id: chatId } })
+      return matchingChats[0]
+        .getMessages()
         .then(messages => resp(messages.map(serializeMessage)))
     })
-    .catch(err)
 }
 
 

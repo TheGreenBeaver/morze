@@ -1,5 +1,11 @@
 const OOPS = 'Some temporary issues, please try again later';
 const ERR_FIELD = 'nonFieldErrors';
+const SEARCH_TYPES = {
+  USERS: 'USERS',
+  CHATS: 'CHATS',
+  MESSAGES: 'MESSAGES',
+  ANY: 'ANY',
+}
 
 const WS_ENDPOINTS = {
   messages: {
@@ -25,5 +31,7 @@ const WS_ENDPOINTS = {
 export {
   OOPS,
   ERR_FIELD,
+  SEARCH_TYPES,
+
   WS_ENDPOINTS
 };

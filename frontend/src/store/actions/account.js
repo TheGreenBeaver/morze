@@ -1,11 +1,6 @@
 import { account } from './action-types';
 
 
-const signInAction = token => ({
-  type: account.SIGN_IN,
-  token
-});
-
 const logOutAction = () => ({
   type: account.LOG_OUT
 });
@@ -21,7 +16,6 @@ const setUserData = userData => ({
 });
 
 export {
-  signInAction,
   logOutAction,
   setVerified,
   setUserData

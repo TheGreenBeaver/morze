@@ -1,4 +1,5 @@
 import { createTheme } from '@material-ui/core/styles';
+import { grey } from '@material-ui/core/colors';
 
 
 const theme = createTheme({
@@ -39,7 +40,12 @@ const theme = createTheme({
     MuiContainer: {
       root: {
         height: '100vh',
-        minHeight: '100vh'
+        minHeight: '100vh',
+      }
+    },
+    MuiScopedCssBaseline: {
+      root: {
+        backgroundColor: grey[100]
       }
     },
     MuiFormControl: {

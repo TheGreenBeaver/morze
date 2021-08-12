@@ -19,7 +19,7 @@ function handleValidationError(err, req, res, next) {
   next(err);
 }
 
-function handleUnknownError(err, req, res) {
+function handleUnknownError(err, req, res, next) {
   return res.status(httpStatus.INTERNAL_SERVER_ERROR).end();
 }
 

@@ -10,19 +10,16 @@ import { getCurrentUserData } from './api/auth';
 import useErrorHandler from './hooks/use-error-handler';
 import { setUserData } from './store/actions/account';
 import LoadingScreen from './components/loading-screen';
-import { useCookies } from 'react-cookie';
-import { getToken } from './util/auth';
-import WsContext from './contexts/ws-context';
+import useAuth from './hooks/use-auth';
 
 
 function App() {
   const dispatch = useDispatch();
   const { pathname } = useLocation();
 
-  const [cookies, setCookie] = useCookies();
-
-  const { isAuthorized, userData } = useSelector(state => state.account);
+  const { userData } = useSelector(state => state.account);
   const { error } = useSelector(state => state.general);
+  const { isAuthorized, getHeaders } = useAuth();
 
   const handleBackendError = useErrorHandler();
 
@@ -35,16 +32,13 @@ function App() {
   useEffect(() => {
     const requestCurrentUserData = async () => {
       try {
-        const data = await getCurrentUserData();
+        const data = await getCurrentUserData(getHeaders());
         dispatch(setUserData(data));
       } catch (e) {
-        handleBackendError(e)
+        handleBackendError(e);
       }
     };
     if (isAuthorized) {
-      if (!cookies.Token) {
-        setCookie('Token', getToken(), { path: '/' });
-      }
       requestCurrentUserData();
     }
   }, [isAuthorized]);
@@ -60,14 +54,12 @@ function App() {
   const Layout = userState.every(attr => !!attr) ? FullScreenLayout : OneCardLayout;
 
   return (
-    <WsContext>
-      <Layout>
-        <Switch>
-          {routerConfig.map(config => routeIsIncluded(config, ...userState) && <Route {...config} key={config.path} />)}
-          {!pathIsAvailable(pathname, ...userState) && <Redirect to={getDefaultRoute(...userState)} />}
-        </Switch>
-      </Layout>
-    </WsContext>
+    <Layout>
+      <Switch>
+        {routerConfig.map(config => routeIsIncluded(config, ...userState) && <Route {...config} key={config.path} />)}
+        {!pathIsAvailable(pathname, ...userState) && <Redirect to={getDefaultRoute(...userState)} />}
+      </Switch>
+    </Layout>
   );
 }
 

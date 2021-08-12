@@ -3,25 +3,24 @@ import { Formik, Form, Field } from 'formik';
 import { TextField } from 'formik-material-ui';
 import * as Yup from 'yup';
 import { signIn } from '../../api/auth';
-import { useDispatch } from 'react-redux';
-import { signInAction } from '../../store/actions/account';
 import PasswordField from '../../components/password-field';
 import Button from '@material-ui/core/Button';
 import StyledLink from '../../components/styled-link';
 import useErrorHandler from '../../hooks/use-error-handler';
 import useFormStyles from '../../theme/form';
+import useAuth from '../../hooks/use-auth';
 
 
 function SignIn() {
-  const dispatch = useDispatch();
   const handleBackendError = useErrorHandler();
+  const { saveCredentials } = useAuth();
 
   const styles = useFormStyles();
 
   function onSubmit(values, formikHelpers) {
     formikHelpers.setSubmitting(true);
     signIn(values)
-      .then(data => dispatch(signInAction(data.token)))
+      .then(data => saveCredentials(data.token))
       .catch(e => {
         formikHelpers.setSubmitting(false);
         if (!handleBackendError(e)) {

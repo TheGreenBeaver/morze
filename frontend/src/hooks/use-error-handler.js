@@ -1,14 +1,14 @@
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { setError } from '../store/actions/general';
 import { useSnackbar } from 'notistack';
-import { logOutAction } from '../store/actions/account';
 import { OOPS } from '../util/constants';
+import useAuth from './use-auth';
 
 
 function useErrorHandler() {
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
-  const { isAuthorized } = useSelector(state => state.account);
+  const { isAuthorized, clearCredentials } = useAuth();
 
   function handleBackendError(error) {
     const { response: { status } } = error;
@@ -21,7 +21,7 @@ function useErrorHandler() {
     switch (status) {
       case 401:
         enqueueSnackbar('Please re-log into your account', { variant: 'info' });
-        dispatch(logOutAction());
+        clearCredentials();
         return true;
       case 404:
         text = 'Page not found';

@@ -3,13 +3,14 @@ import { useLocation, useParams, useHistory } from 'react-router-dom';
 import CenterBox from '../../components/center-box';
 import Typography from '@material-ui/core/Typography';
 import useErrorHandler from '../../hooks/use-error-handler';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { confirm } from '../../api/auth';
 import { ERR_FIELD, OOPS } from '../../util/constants';
 import { setVerified } from '../../store/actions/account';
 import { links } from '../../util/routing';
 import Button from '@material-ui/core/Button';
 import { useSnackbar } from 'notistack';
+import useAuth from '../../hooks/use-auth';
 
 
 const ENDPOINT_MAPPING = {
@@ -34,7 +35,7 @@ function Confirm() {
 
   const history = useHistory();
 
-  const { isAuthorized } = useSelector(state => state.account);
+  const { isAuthorized } = useAuth();
 
   const dispatch = useDispatch();
   const handleBackendError = useErrorHandler();
