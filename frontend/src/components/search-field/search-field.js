@@ -1,45 +1,59 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { bool } from 'prop-types';
 import OutlinedInput from '@material-ui/core/OutlinedInput';
 import { InputAdornment } from '@material-ui/core';
 import { Search } from '@material-ui/icons';
 import useStyles from './styles/search-field.styles';
-import { useDispatch } from 'react-redux';
-import { SEARCH_TYPES } from '../../util/constants';
-import useAuth from '../../hooks/use-auth';
-import { debounce } from 'lodash';
-import { search } from '../../api/search';
-import { setSearchResults } from '../../store/actions/search';
-import useErrorHandler from '../../hooks/use-error-handler';
+import { useDispatch, useSelector } from 'react-redux';
+import { HTTP_ENDPOINTS, LINKS, SEARCH_TYPES } from '../../util/constants';
+import { setSearchIsLoading, setSearchResults } from '../../store/actions/search';
+import { useHistory } from 'react-router-dom';
+import useClearPath from '../../hooks/use-clear-path';
+import SmallSpinner from '../small-spinner';
+import useDebouncedApiCall from '../../hooks/use-debounced-api-call';
 
-
-const debouncedFunc = debounce(
-  (currConfig, currHeaders, currDispatch, currErrHandler) =>
-    search(currConfig, currHeaders)
-      .then(data => currDispatch(setSearchResults(data)))
-      .catch(currErrHandler),
-  800
-);
 
 function SearchField({ expandable }) {
   const dispatch = useDispatch();
+  const history = useHistory();
+  const clearPathname = useClearPath();
   const styles = useStyles();
-  const { getHeaders } = useAuth();
-  const handleBackendError = useErrorHandler();
+  const { isLoading } = useSelector(state => state.search);
 
   const [searchConfig, setSearchConfig] = useState({
     term: '',
-    type: SEARCH_TYPES.ANY
+    type: SEARCH_TYPES.any
   });
 
-  const debouncedSearch = useRef(debouncedFunc);
+  function beforeAny() {
+    dispatch(setSearchIsLoading(true));
+  }
 
-  useEffect(() => {
-    debouncedSearch.current.cancel();
-    if (searchConfig.term) {
-      debouncedSearch.current(searchConfig, getHeaders(), dispatch, handleBackendError);
+  function onSuccess(data) {
+    if (clearPathname !== LINKS.search) {
+      history.push(LINKS.search);
     }
-  }, [searchConfig]);
+    dispatch(setSearchResults(data));
+  }
+
+  function onAny() {
+    dispatch(setSearchIsLoading(false));
+  }
+
+  function extraCondition(currentSearchConfig) {
+    return !!currentSearchConfig.params.term;
+  }
+
+  useDebouncedApiCall(
+    HTTP_ENDPOINTS.search,
+    [{ params: searchConfig }],
+    {
+      beforeAny,
+      extraCondition,
+      onSuccess,
+      onAny
+    }
+  );
 
   const classes = expandable
     ? { root: styles.baseAmber, input: styles.expandable }
@@ -49,7 +63,7 @@ function SearchField({ expandable }) {
     <OutlinedInput
       startAdornment={
         <InputAdornment position='start'>
-          <Search />
+          {isLoading ? <SmallSpinner /> : <Search />}
         </InputAdornment>
       }
       onChange={e => setSearchConfig(curr => ({ ...curr, term: e.target.value }))}

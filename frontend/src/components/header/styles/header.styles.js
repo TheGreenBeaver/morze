@@ -11,7 +11,8 @@ const useStyles = makeStyles(theme => ({
   },
   avatar: {
     ...matchToolbar(theme, ['height', 'width'], 0.6),
-    marginLeft: theme.spacing(3)
+    marginLeft: theme.spacing(3),
+    cursor: 'pointer'
   },
   rightBlock: {
     paddingRight: theme.spacing(3)

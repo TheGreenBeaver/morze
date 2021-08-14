@@ -1,9 +1,11 @@
+const { onlyMembers } = require('../util/ws');
 const { serializeMessage } = require('../serializers/messages');
-const { NoSuchError } = require('../util/custom-errors');
+const { NoSuchError, CustomError } = require('../util/custom-errors');
+const { Message, User, Chat } = require('../models/index');
 
 
 function send(data, { user, broadcast }) {
-  const { chatId, text, attachments } = data;
+  const { chat: chatId, text, attachments } = data;
 
   return user
     .getChats({ where: { id: chatId } })
@@ -27,20 +29,55 @@ function send(data, { user, broadcast }) {
     })
 }
 
-function edit(data, { user, err, resp, broadcast }) {
-
+function edit(data, { user, resp, broadcast }) {
+  const { text: newText, attachments: newAttachments } = data;
 }
 
-function remove(data, { user, err, resp, broadcast }) {
+function remove(data, { user, broadcast }) {
+  const { message: messageId } = data;
+  Message
+    .findByPk(messageId, {
+      rejectOnEmpty: new NoSuchError('message', messageId),
+      include: [
+        {
+          model: User,
+          attributes: ['id'],
+          as: 'user',
+          through: {
+            attributes: []
+          }
+        },
+        {
+          model: Chat,
+          as: 'chat',
+          include: {
+            model: User,
+            attributes: [],
+            as: 'users'
+          }
+        }
+      ]
+    })
+    .then(message => {
+      if (message.user.id !== user.id) {
+        throw new CustomError({ message: ['You can only delete your own messages'] });
+      }
+      const members = message.chat.users;
 
+      return message
+        .destroy()
+        .then(() => broadcast({ message: messageId }, {
+          extraCondition: client => onlyMembers(members, client)
+        }))
+    })
 }
 
-function markRead(data, { user, err, resp, broadcast }) {
-
+function markRead(data, { user, resp, broadcast }) {
+  const { message: messageId } = data;
 }
 
 function list(data, { user, resp }) {
-  const { chatId } = data;
+  const { chat: chatId } = data;
 
   // TODO: Pagination
   return user

@@ -4,7 +4,7 @@ import CenterBox from '../center-box';
 
 function LoadingScreen() {
   return (
-    <CenterBox>
+    <CenterBox height='100vh'>
       <svg
         xmlns='http://www.w3.org/2000/svg'
         height='40%'

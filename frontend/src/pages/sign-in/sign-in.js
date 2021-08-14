@@ -1,31 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Formik, Form, Field } from 'formik';
 import { TextField } from 'formik-material-ui';
 import * as Yup from 'yup';
-import { signIn } from '../../api/auth';
 import PasswordField from '../../components/password-field';
-import Button from '@material-ui/core/Button';
 import StyledLink from '../../components/styled-link';
-import useErrorHandler from '../../hooks/use-error-handler';
 import useFormStyles from '../../theme/form';
 import useAuth from '../../hooks/use-auth';
+import { useAxios } from '../../contexts/axios-context';
+import { ERR_FIELD, HTTP_ENDPOINTS } from '../../util/constants';
+import LoadingButton from '../../components/loading-button';
+import ErrorPrompt from '../../components/error-prompt';
 
 
 function SignIn() {
-  const handleBackendError = useErrorHandler();
   const { saveCredentials } = useAuth();
+  const { api } = useAxios();
+  const [credentialsError, setCredentialsError] = useState(null);
 
   const styles = useFormStyles();
 
   function onSubmit(values, formikHelpers) {
+    setCredentialsError(null);
     formikHelpers.setSubmitting(true);
-    signIn(values)
+    api(HTTP_ENDPOINTS.signIn, values).call()
       .then(data => saveCredentials(data.token))
       .catch(e => {
         formikHelpers.setSubmitting(false);
-        if (!handleBackendError(e)) {
-          formikHelpers.setErrors(e.response.data);
-        }
+        setCredentialsError(e.response.data[ERR_FIELD][0]);
       });
   }
 
@@ -50,9 +51,10 @@ function SignIn() {
         />
         <PasswordField />
 
-        <Button type='submit' color='primary' classes={{ root: styles.submitBtn }}>
+        <LoadingButton classes={{ root: styles.submitBtn }}>
           Sign In
-        </Button>
+        </LoadingButton>
+        <ErrorPrompt text={credentialsError} />
         <StyledLink to='/sign_up' classes={{ root: styles.redirect }}>
           Don't have an account yet
         </StyledLink>

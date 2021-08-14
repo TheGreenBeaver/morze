@@ -12,11 +12,12 @@ function useAuth() {
   const isAuthorized = !!cookies[TOKEN_FIELD];
 
   function getHeaders(headers = {}) {
-    return { ...headers, Authorization: `Token ${cookies[TOKEN_FIELD]}` };
+    const authCookie = document.cookie.split('; ').find(cookie => cookie.startsWith(TOKEN_FIELD));
+    return { ...headers, Authorization: `Token ${authCookie.replace(`${TOKEN_FIELD}=`, '')}` };
   }
 
   function saveCredentials(token) {
-    setCookie(TOKEN_FIELD, token, { path: '/' });
+    setCookie(TOKEN_FIELD, token, { maxAge: 60 * 60 * 24 * 365 });
   }
 
   function clearCredentials() {

@@ -1,9 +1,9 @@
-import { general } from '../actions/action-types';
+import { account, general } from '../actions/action-types';
 
 
 const initialState = {
   error: null,
-  wsReady: false
+  modalContent: null
 };
 
 
@@ -11,8 +11,10 @@ const reducer = (state = initialState, action) => {
   switch (action.type) {
     case general.SET_ERROR:
       return { ...state, error: action.error };
-    case general.SET_WS_READY:
-      return { ...state, wsReady: action.isReady };
+    case general.SET_MODAL_CONTENT:
+      return { ...state, modalContent: action.modalContent };
+    case account.LOG_OUT:
+      return { ...state, modalContent: null };
     default:
       return state;
   }

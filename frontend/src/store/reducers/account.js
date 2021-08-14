@@ -10,7 +10,7 @@ const reducer = (state = initialState, action) => {
     case account.SET_USER_DATA:
       return { ...state, userData: action.userData };
     case account.LOG_OUT:
-      return { ...state, isAuthorized: false, userData: null };
+      return initialState;
     case account.SET_VERIFIED:
       return state.userData
         ? { ...state, userData: { ...state.userData, isVerified: action.isVerified } }

@@ -1,49 +1,62 @@
-class AuthError extends Error {
-  static TYPES = {
-    username: 'username',
-    password: 'password',
-    unauthorized: 'unauthorized'
-  }
+const { ValidationError, ValidationErrorItem } = require('sequelize');
+const settings = require('../config/settings');
 
+
+class AuthError extends Error {
   /**
    *
-   * @param {TYPES} type
-   * @param other
+   * @param {boolean=false} credentials is it the problem with credentials
    */
-  constructor(type, ...other) {
-    super(...other);
-    this.type = type;
+  constructor(credentials = false) {
+    super();
+    this.credentials = credentials;
   }
 }
 
 class CustomError extends Error {
   /**
    *
-   * @param {Object=} data
-   * @param other
+   * @param {Object} data
    */
-  constructor(data, ...other) {
-    super(...other);
+  constructor(data) {
+    super();
     this.data = data;
   }
 }
 
-class NoSuchError extends CustomError {
+class OneValidationError extends ValidationError {
+  /**
+   *
+   * @param {string} message
+   * @param {string=} field
+   */
+  constructor(message, field = settings.ERR_FIELD) {
+    super('', [
+      new ValidationErrorItem(
+        message,
+        'Invalid data',
+        field
+      )
+    ]);
+  }
+}
+
+class NoSuchError extends ValidationError {
   /**
    *
    * @param {string} model
    * @param {number|Array<number>} id
-   * @param other
+   * @param {string=} field
    */
-  constructor(model, id, ...other) {
-    super(...other);
-    const text = Array.isArray(id)
+  constructor(model, id, field) {
+    const errField = field || (Array.isArray(id) ? `${model}s` : model);
+    const errValue = Array.isArray(id) ? id.join(', ') : `${id}`;
+    const errMessage = Array.isArray(id)
       ? `No ${model}s found with ids of ${id.join(', ')}`
       : `No ${model} found with an id of ${id}`;
-    const fieldName = Array.isArray(id) ? `${model}s` : model;
-    this.data = {
-      [fieldName]: [text]
-    };
+    super('', [
+      new ValidationErrorItem(errMessage, 'invalid pk', errField, errValue)
+    ]);
   }
 }
 
@@ -51,5 +64,6 @@ class NoSuchError extends CustomError {
 module.exports = {
   AuthError,
   NoSuchError,
-  CustomError
+  CustomError,
+  OneValidationError
 };

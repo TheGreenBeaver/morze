@@ -3,7 +3,11 @@ import { matchToolbar } from '../../../util/misc';
 
 
 const useStyles = makeStyles(theme => ({
-  content: matchToolbar(theme, 'paddingTop')
+  content: {
+    ...matchToolbar(theme, 'paddingTop'),
+    overflow: 'auto',
+    height: 'fit-content'
+  }
 }));
 
 export default useStyles;

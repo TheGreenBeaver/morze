@@ -24,7 +24,12 @@ function matchToolbar(theme, property, scale = 1) {
   return style;
 }
 
+function ts() {
+  return (new Date()).getTime();
+}
+
 export {
   applyToOneOrMany,
-  matchToolbar
+  matchToolbar,
+  ts
 };

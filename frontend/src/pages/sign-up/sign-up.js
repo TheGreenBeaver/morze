@@ -3,13 +3,13 @@ import * as Yup from 'yup';
 import { Formik, Form, Field } from 'formik';
 import { TextField } from 'formik-material-ui';
 import PasswordField from '../../components/password-field';
-import Button from '@material-ui/core/Button';
 import StyledLink from '../../components/styled-link';
 import useFormStyles from '../../theme/form';
-import { signUp } from '../../api/auth';
-import useErrorHandler from '../../hooks/use-error-handler';
 import { useSnackbar } from 'notistack';
 import useAuth from '../../hooks/use-auth';
+import { useAxios } from '../../contexts/axios-context';
+import { HTTP_ENDPOINTS } from '../../util/constants';
+import LoadingButton from '../../components/loading-button';
 
 
 const FIELDS = [
@@ -27,22 +27,20 @@ const yupConfig = FIELDS.reduce((config, field) => ({
 
 function SignUp() {
   const styles = useFormStyles();
-  const handleBackendError = useErrorHandler();
   const { enqueueSnackbar } = useSnackbar();
   const { saveCredentials } = useAuth();
+  const { api } = useAxios();
 
   function onSubmit(values, formikHelpers) {
     formikHelpers.setSubmitting(true);
-    signUp(values)
+    api(HTTP_ENDPOINTS.signUp, values).call()
       .then(data => {
         enqueueSnackbar('Signed up for Morze successfully!');
         saveCredentials(data.token);
       })
       .catch(e => {
         formikHelpers.setSubmitting(false);
-        if (!handleBackendError(e)) {
-          formikHelpers.setErrors(e.response.data);
-        }
+        formikHelpers.setErrors(e.response.data);
       });
   }
 
@@ -84,9 +82,9 @@ function SignUp() {
           autoComplete='email'
         />
         <PasswordField />
-        <Button type='submit' color='primary' classes={{ root: styles.submitBtn }}>
-          Sign In
-        </Button>
+        <LoadingButton classes={{ root: styles.submitBtn }}>
+          Sign Up
+        </LoadingButton>
         <StyledLink to='/sign_in' classes={{ root: styles.redirect }}>
           Already have an account
         </StyledLink>

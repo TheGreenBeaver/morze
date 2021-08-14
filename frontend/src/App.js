@@ -6,11 +6,11 @@ import { clearError } from './store/actions/general';
 import ErrorPage from './pages/error-page';
 import FullScreenLayout from './components/full-screen-layout';
 import OneCardLayout from './components/one-card-layout';
-import { getCurrentUserData } from './api/auth';
-import useErrorHandler from './hooks/use-error-handler';
 import { setUserData } from './store/actions/account';
 import LoadingScreen from './components/loading-screen';
 import useAuth from './hooks/use-auth';
+import { useAxios } from './contexts/axios-context';
+import { HTTP_ENDPOINTS } from './util/constants';
 
 
 function App() {
@@ -19,9 +19,8 @@ function App() {
 
   const { userData } = useSelector(state => state.account);
   const { error } = useSelector(state => state.general);
-  const { isAuthorized, getHeaders } = useAuth();
-
-  const handleBackendError = useErrorHandler();
+  const { isAuthorized } = useAuth();
+  const { api } = useAxios();
 
   const userState = [isAuthorized, userData?.isVerified];
 
@@ -30,16 +29,9 @@ function App() {
   }, [pathname]);
 
   useEffect(() => {
-    const requestCurrentUserData = async () => {
-      try {
-        const data = await getCurrentUserData(getHeaders());
-        dispatch(setUserData(data));
-      } catch (e) {
-        handleBackendError(e);
-      }
-    };
     if (isAuthorized) {
-      requestCurrentUserData();
+      api(HTTP_ENDPOINTS.getCurrentUserData).call()
+        .then(data => dispatch(setUserData(data)));
     }
   }, [isAuthorized]);
 

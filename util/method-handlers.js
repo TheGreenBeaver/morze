@@ -1,4 +1,5 @@
 const httpStatus = require('http-status');
+const { dummyReject } = require('./misc');
 const { compareHashed } = require('./cryptography');
 const { AuthError } = require('./custom-errors');
 const { AuthToken, User } = require('../models/index');
@@ -33,10 +34,8 @@ async function create({ Model, serializer = v => v }, req, res, next) {
 
 async function authorizeWithToken({ username, password }, res) {
   const user = await User.findOne({ where: { username } });
-  if (!user) {
-    throw new AuthError(AuthError.TYPES.username);
-  } else if (!compareHashed(password, user.password)) {
-    throw new AuthError(AuthError.TYPES.password);
+  if (!user || !compareHashed(password, user.password)) {
+    throw new AuthError(true);
   } else {
     const authToken = await AuthToken.create({ user_id: user.id });
     return res.json({ token: authToken.key });
@@ -44,21 +43,17 @@ async function authorizeWithToken({ username, password }, res) {
 }
 
 function checkAuthorization(key) {
-  return new Promise((resolve, reject) => {
-    if (!key) {
-      return reject(new AuthError(AuthError.TYPES.unauthorized));
-    }
-
-    AuthToken
-      .findByPk(key, { include: { model: User, as: 'user' } })
-      .then(authToken => {
-        if (!authToken) {
-          reject(new AuthError(AuthError.TYPES.unauthorized))
-        }
-        resolve(authToken);
-      })
-      .catch(reject);
-  });
+  if (!key) {
+    return dummyReject(new AuthError());
+  }
+  return AuthToken
+    .findByPk(key, { include: { model: User, as: 'user' } })
+    .then(authToken => {
+      if (!authToken) {
+        throw new AuthError();
+      }
+      return authToken;
+    });
 }
 
 module.exports = {

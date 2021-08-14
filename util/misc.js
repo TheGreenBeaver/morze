@@ -1,4 +1,5 @@
 const path = require('path');
+const { CustomError } = require('./custom-errors');
 
 
 function getEnv() {
@@ -31,8 +32,21 @@ function getUniqueKeyName(sqlData) {
     .replace('_key', '');
 }
 
-function dummyPromise() {
+function dummyResolve() {
   return new Promise(resolve => resolve());
+}
+
+/**
+ *
+ * @param {Error|Object} err
+ * @returns {Promise<Error>}
+ */
+function dummyReject(err) {
+  return new Promise((_, reject) => reject(
+    err instanceof Error
+      ? err
+      : new CustomError(err)
+  ));
 }
 
 function noOp() {
@@ -46,6 +60,7 @@ module.exports = {
   isActive,
   getValidationErrJson,
   getUniqueKeyName,
-  dummyPromise,
+  dummyResolve,
+  dummyReject,
   noOp
 };

@@ -6,7 +6,7 @@ function handleAuthorizedRequest(req, res, next) {
   const key = header ? header.replace('Token ', '') : null;
   checkAuthorization(key)
     .then(authToken => {
-      req.user = authToken.user.dataValues;
+      req.user = authToken.user;
       next();
     })
     .catch(next);

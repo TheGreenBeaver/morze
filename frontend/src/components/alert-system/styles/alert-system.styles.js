@@ -8,7 +8,7 @@ const useStyles = makeStyles(({ palette: p }) => {
       backgroundColor: p[type].dark,
       color,
 
-      '& .MuiIconButton-root': {
+      '& .MuiSvgIcon-root': {
         color
       }
     };

@@ -6,6 +6,12 @@ const setSearchResults = results => ({
   results
 });
 
+const setSearchIsLoading = isLoading => ({
+  type: search.SET_SEARCH_IS_LOADING,
+  isLoading
+});
+
 export {
-  setSearchResults
+  setSearchResults,
+  setSearchIsLoading
 };

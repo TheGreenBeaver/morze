@@ -4,7 +4,6 @@ import { useDispatch } from 'react-redux';
 import { WS_ENDPOINTS} from '../util/constants';
 import useErrorHandler from '../hooks/use-error-handler';
 import { addChat, setChats } from '../store/actions/chats';
-import { setWsReady } from '../store/actions/general';
 import useAuth from '../hooks/use-auth';
 
 
@@ -20,6 +19,7 @@ function useWs() {
 
 function WsContext({ children }) {
   const socketRef = useRef(null);
+  const waiting = useRef([]);
   const dispatch = useDispatch();
   const { isAuthorized } = useAuth();
   const [unhandledError, setUnhandledError] = useState(null);
@@ -30,7 +30,9 @@ function WsContext({ children }) {
       const socket = new WebSocket('ws://localhost:8000/ws');
 
       socket.onopen = () => {
-        dispatch(setWsReady(true));
+        waiting.current.forEach(({ url, data }) => {
+          send(url, data);
+        });
       }
 
       socket.onmessage = e => {
@@ -54,11 +56,7 @@ function WsContext({ children }) {
         }
       };
 
-      socket.onclose = () => {
-        dispatch(setWsReady(false));
-      }
-
-      // onerror
+      // TODO: onerror
 
       socketRef.current = socket;
     }
@@ -73,6 +71,12 @@ function WsContext({ children }) {
 
   function send(url, data) {
     if (socketRef.current) {
+
+      if (socketRef.current.readyState !== WebSocket.OPEN) {
+        waiting.current.push({ url, data });
+        return;
+      }
+
       setUnhandledError(null);
       const toSend = { url };
       if (data) {

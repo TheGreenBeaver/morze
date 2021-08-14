@@ -8,13 +8,27 @@ const setError = error => ({
 
 const clearError = () => setError(null);
 
-const setWsReady = isReady => ({
-  type: general.SET_WS_READY,
-  isReady
-})
+/**
+ * @typedef ModalContent
+ * @type {Object}
+ * @property {string} title
+ * @property {object} body
+ */
+/**
+ *
+ * @param {ModalContent|null} modalContent
+ * @returns {{modalContent, type: string}}
+ */
+const setModalContent = modalContent => ({
+  type: general.SET_MODAL_CONTENT,
+  modalContent
+});
+
+const closeModal = () => setModalContent(null);
 
 export {
   setError,
   clearError,
-  setWsReady
+  setModalContent,
+  closeModal
 };

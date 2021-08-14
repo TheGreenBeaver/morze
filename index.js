@@ -17,4 +17,6 @@ useMiddleware(app, { prefix: 'errors.' });
 // WebSockets
 useWs(server);
 
-server.listen(settings.PORT, () => console.log(`Server is running on port ${settings.PORT}...`));
+server.listen(settings.PORT, () =>
+  console.log(`Server is running on port ${settings.PORT}...`)
+);

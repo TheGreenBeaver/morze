@@ -13,16 +13,13 @@ router.post('/sign_in', (req, res, next) =>
   methodHandlers.authorizeWithToken(req.body, res).catch(next)
 );
 
-router.post('/log_out', async (req, res, next) => {
-  try {
-    await AuthToken.destroy({
-      where:
-        { key: req.get('Authorization').replace('Token ', '') }
-    });
-    return res.status(httpStatus.NO_CONTENT).end();
-  } catch (e) {
-    next(e);
-  }
-});
+router.post('/log_out', (req, res, next) =>
+  AuthToken
+    .destroy({
+      where: { key: req.get('Authorization').replace('Token ', '') }
+    })
+    .then(() => res.status(httpStatus.NO_CONTENT).end())
+    .catch(next)
+);
 
 module.exports = router;

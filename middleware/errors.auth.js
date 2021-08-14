@@ -1,14 +1,13 @@
 const { AuthError } = require('../util/custom-errors');
 const httpStatus = require('http-status');
+const settings = require('../config/settings');
 
 
 function handleUnauthorizedError(err, req, res, next) {
   if (err instanceof AuthError) {
-    if (err.type === AuthError.TYPES.unauthorized) {
-      return res.status(httpStatus.UNAUTHORIZED).end();
-    }
-
-    return res.status(httpStatus.BAD_REQUEST).json({ [err.type]: [`Invalid ${err.type}`] })
+    return err.credentials
+      ? res.status(httpStatus.BAD_REQUEST).json({ [settings.ERR_FIELD]: ['Invalid credentials'] })
+      : res.status(httpStatus.UNAUTHORIZED).end();
   }
 
   next(err);

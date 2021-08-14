@@ -29,7 +29,6 @@ function useWs(server) {
         handler(message.data, {
           user,
           resp: toSend => wsResp({ data: toSend, url: endpoint }, ws),
-          err: e => handleError(ws, endpoint, e),
           broadcast: (toSend, { skipCurrent, extraCondition } = {}) => {
             const args = [wsServer, { data: toSend, url: endpoint }];
             const config = {};

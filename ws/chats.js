@@ -1,4 +1,4 @@
-const { dummyPromise } = require('../util/misc');
+const { dummyReject } = require('../util/misc');
 const { Chat, User } = require('../models/index');
 const { Op } = require('sequelize');
 const { differenceWith } = require('lodash');
@@ -27,9 +27,9 @@ function leave(data, { user, broadcast }) {
     });
 }
 
-function kick(data, { user, err, resp, broadcast }) {
+function kick(data, { user, resp, broadcast }) {
   const { chat: chatId, user: toKickId } = data;
-  
+
 }
 
 function create(data, { user, broadcast }) {
@@ -39,14 +39,26 @@ function create(data, { user, broadcast }) {
     .then(({ count, rows: invitedUsers }) => {
       if (count < invitedIds.length) {
         const invalidIds = differenceWith(invitedIds, invitedUsers, (i, u) => u.id === i);
-        throw new NoSuchError('user', invalidIds);
+        throw new NoSuchError('user', invalidIds, 'invited');
       }
 
+      const allInvitedUsers = [...invitedUsers, { user, isAdmin: true }];
+      let altName;
+      switch (allInvitedUsers.length) {
+        case 1:
+          altName = 'Me';
+          break;
+        case 2:
+          altName = null;
+          break;
+        default:
+          altName = allInvitedUsers.map(u => u.username).join(', ');
+      }
       return Chat
-        .create({ name: data.name })
+        .create({ name: data.name || altName })
         .then(newChat =>
           newChat
-            .setUsers([...invitedUsers, { user, isAdmin: true }])
+            .setUsers()
             .then(() => broadcast(serializeChat(newChat), {
               extraCondition: client => onlyMembers(invitedUsers, client)
             }))
@@ -54,11 +66,10 @@ function create(data, { user, broadcast }) {
     })
 }
 
-function invite(data, { err, broadcast }) {
+function invite(data, { broadcast }) {
   const { invited: invitedIds, chat: chatId } = data;
   if (!invitedIds || !invitedIds.length) {
-    err({ invited: ['You have to choose at least one user to invite'] });
-    return dummyPromise();
+    return dummyReject({ invited: ['You have to choose at least one user to invite'] });
   }
 
   return User
@@ -66,7 +77,7 @@ function invite(data, { err, broadcast }) {
     .then(({ count, rows: invitedUsers }) => {
       if (count < invitedIds.length) {
         const invalidIds = differenceWith(invitedIds, invitedUsers, (i, u) => u.id === i);
-        throw new NoSuchError('user', invalidIds);
+        throw new NoSuchError('user', invalidIds, 'invited');
       }
 
       return Chat
@@ -106,11 +117,11 @@ function edit(data, { user, broadcast }) {
     })
 }
 
-function remove(data, { user, err, resp, broadcast }) {
+function remove(data, { user, resp, broadcast }) {
 	
 }
 
-function makeAdmin(data, { user, err, resp, broadcast }) {
+function makeAdmin(data, { user, resp, broadcast }) {
 
 }
 

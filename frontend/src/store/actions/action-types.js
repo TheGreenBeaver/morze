@@ -6,7 +6,7 @@ const account = {
 
 const general = {
   SET_ERROR: 'SET_ERROR',
-  SET_WS_READY: 'SET_WS_READY',
+  SET_MODAL_CONTENT: 'SET_MODAL_CONTENT',
 };
 
 const chats = {
@@ -15,7 +15,8 @@ const chats = {
 }
 
 const search = {
-  SET_SEARCH_RESULTS: 'SET_SEARCH_RESULTS'
+  SET_SEARCH_RESULTS: 'SET_SEARCH_RESULTS',
+  SET_SEARCH_IS_LOADING: 'SET_SEARCH_IS_LOADING',
 };
 
 export {

@@ -42,13 +42,12 @@ router.post('/verify', async (req, res, next) => {
   try {
     const user = await User.findByPk(parseB36(req.body.uid));
     const status = checkToken(user, req.body.token);
-
     if (status === TOKEN_STATUS.OK) {
       user.setDataValue('isVerified', true);
       const savedUser = await user.save();
       return res.json({ isVerified: savedUser.isVerified });
     }
-
+    console.log('meh...');
     return res.status(httpStatus.BAD_REQUEST).json({ [settings.ERR_FIELD]: [`${capitalize(status)} Link`] });
   } catch (e) {
     next(e);
@@ -63,13 +62,13 @@ router.get('/', async (req, res, next) =>
 );
 
 router.get('/me', (req, res) =>
-  res.json(serializeSelf(req.user))
+  res.json(serializeSelf(req.user.dataValues))
 );
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', (req, res, next) => {
     const isMe = req.user.id === req.params.id;
     if (isMe) {
-      return res.json(serializeSelf(req.user));
+      return res.json(serializeSelf(req.user.dataValues));
     }
 
     return methodHandlers.find({ Model: User, serializer: serializeUser }, req, res, next);

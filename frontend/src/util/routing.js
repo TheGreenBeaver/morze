@@ -4,6 +4,7 @@ import SignUp from '../pages/sign-up';
 import EmailSent from '../pages/email-sent';
 import Confirm from '../pages/confirm';
 import Chats from '../pages/chats';
+import { LINKS } from './constants';
 
 
 const CONFIRMATION_ROUTE_BASE = '/confirm';
@@ -13,27 +14,21 @@ const RESET_ROUTE_BASE = '/reset';
 const ANY_AUTH = 'any';
 const EMAIL_ROUTES = ['verify', 'password', 'username'];
 
-const links = {
-  chats: '/chats',
-  signIn: '/sign_in',
-  signUp: '/sign_up'
-};
-
 const routerConfig = [
   {
-    path: links.signIn,
+    path: LINKS.signIn,
     component: SignIn,
     exact: true,
     auth: false
   },
   {
-    path: links.signUp,
+    path: LINKS.signUp,
     component: SignUp,
     exact: true,
     auth: false
   },
   {
-    path: links.chats,
+    path: LINKS.chats,
     component: Chats,
     exact: false,
     auth: true,
@@ -56,11 +51,11 @@ const routerConfig = [
 
 function getDefaultRoute(isAuthorized, isVerified) {
   if (!isAuthorized) {
-    return links.signIn;
+    return LINKS.signIn;
   }
 
   if (isVerified) {
-    return links.chats;
+    return LINKS.chats;
   }
 
   return `${EMAIL_SENT_ROUTE_BASE}/${EMAIL_ROUTES[0]}`;
@@ -118,7 +113,6 @@ function pathIsAvailable(path, isAuthorized, isVerified) {
 
 export {
   routerConfig,
-  links,
 
   CONFIRMATION_ROUTE_BASE,
   EMAIL_SENT_ROUTE_BASE,

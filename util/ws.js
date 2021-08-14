@@ -1,7 +1,7 @@
 const httpStatus = require('http-status');
 const WebSocket = require('ws');
 const { ValidationError } = require('sequelize');
-const { getValidationErrJson, dummyPromise, noOp } = require('./misc');
+const { getValidationErrJson, dummyResolve, noOp } = require('./misc');
 const { CustomError } = require('../util/custom-errors');
 
 
@@ -53,7 +53,7 @@ function wsErr(ws, code, endpoint) {
  */
 function wsBroadcast(
   wsServer, response,
-  { current, extraCondition = dummyPromise } = {}
+  { current, extraCondition = dummyResolve } = {}
 ) {
   wsServer.clients.forEach(client => {
     if (
@@ -75,18 +75,13 @@ function handleError(ws, endpoint, e) {
     url: endpoint,
     data
   }, ws);
-  const e500 = () => wsErr(ws, 'INTERNAL_SERVER_ERROR', endpoint);
 
   if (e instanceof ValidationError) {
     custom(getValidationErrJson(e));
   } else if (e instanceof CustomError) {
     custom(e.data);
-  } else if (e instanceof Error) {
-    e500();
-  } else if (typeof e === 'object') {
-    custom(e);
   } else {
-    e500();
+    wsErr(ws, 'INTERNAL_SERVER_ERROR', endpoint);
   }
 }
 

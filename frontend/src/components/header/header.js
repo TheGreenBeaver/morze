@@ -3,18 +3,20 @@ import Toolbar from '@material-ui/core/Toolbar';
 import logo from '../../assets/img/logo.svg';
 import AppBar from '@material-ui/core/AppBar';
 import useStyles from './styles/header.styles';
-import { useMediaQuery, useTheme } from '@material-ui/core';
 import SearchField from '../search-field';
 import Box from '@material-ui/core/Box';
 import Avatar from '@material-ui/core/Avatar';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import useScreenIsSmall from '../../hooks/use-screen-is-small';
+import { setModalContent } from '../../store/actions/general';
+import { UserModal } from '../modals';
 
 
 function Header() {
   const styles = useStyles();
-  const { breakpoints } = useTheme();
-  const screenIsSmall = useMediaQuery(breakpoints.down('xs'));
-  const { userData: { avatar } } = useSelector(state => state.account);
+  const screenIsSmall = useScreenIsSmall();
+  const { userData: { avatar, firstName, lastName } } = useSelector(state => state.account);
+  const dispatch = useDispatch();
 
   return (
     <AppBar position='fixed'>
@@ -31,7 +33,14 @@ function Header() {
           right={0}
         >
           {!screenIsSmall && <SearchField expandable />}
-          <Avatar src={avatar} classes={{ root: styles.avatar }} />
+          <Avatar
+            src={avatar}
+            classes={{ root: styles.avatar }}
+            onClick={() => dispatch(setModalContent({
+              title: `${firstName} ${lastName}`,
+              body: <UserModal />
+            }))}
+          />
         </Box>
       </Toolbar>
     </AppBar>

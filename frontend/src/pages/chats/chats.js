@@ -1,16 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useWs } from '../../contexts/ws-context';
 import { WS_ENDPOINTS } from '../../util/constants';
 import { useSelector } from 'react-redux';
-import useOnWs from '../../hooks/use-on-ws';
 
 
 function Chats() {
-
   const { send } = useWs()
   const { chats } = useSelector(state => state.chats);
 
-  useOnWs(() => send(WS_ENDPOINTS.chats.list));
+  useEffect(() => {
+    send(WS_ENDPOINTS.chats.list)
+  }, []);
 
   return (
     <div>
