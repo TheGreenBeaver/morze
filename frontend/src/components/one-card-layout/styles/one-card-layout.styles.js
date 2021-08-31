@@ -3,7 +3,7 @@ import { makeStyles } from '@material-ui/core';
 
 const useStyles = makeStyles(theme => ({
   root: {
-    padding: `${theme.spacing(2)}px ${theme.spacing(3)}px ${theme.spacing(1)}px ${theme.spacing(3)}px`,
+    padding: theme.spacing(2, 3, 1, 3),
     width: 450
   },
   box: {
@@ -11,7 +11,7 @@ const useStyles = makeStyles(theme => ({
   },
   logo: {
     height: 100,
-    backgroundSize: 'contain'
+    backgroundSize: 'contain !important'
   },
 }));
 

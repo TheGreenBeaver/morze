@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
   }
   MessageAttachment.init({
     file: {
-      type:DataTypes.TEXT,
+      type: DataTypes.TEXT,
       allowNull: false,
 
       validate: buildValidate(['required'], 'file')

@@ -1,0 +1,5 @@
+@for $i from 1 through 4 {
+  .z-chat-window-#{$i} {
+    grid-area: z-chat-window-#{$i};
+  }
+}

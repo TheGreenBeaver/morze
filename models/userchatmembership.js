@@ -9,6 +9,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'last_read_msg_id',
         as: 'lastReadMessage'
       });
+      this.belongsTo(models.Chat, {
+        foreignKey: 'chat_id',
+        as: 'chat'
+      })
     }
   }
   UserChatMembership.init({

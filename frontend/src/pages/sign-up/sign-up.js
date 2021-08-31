@@ -10,19 +10,19 @@ import useAuth from '../../hooks/use-auth';
 import { useAxios } from '../../contexts/axios-context';
 import { HTTP_ENDPOINTS } from '../../util/constants';
 import LoadingButton from '../../components/loading-button';
+import { startCase } from 'lodash';
 
 
 const FIELDS = [
-  'firstName',
-  'lastName',
-  'username',
+  { field: 'firstName', max: 50 },
+  { field: 'lastName', max: 50 },
+  { field: 'username', max: 50 },
   { field: 'email', max: 255 },
   { field: 'password', max: 100 }
 ];
-const DEFAULT_MAX_LEN = 50;
-const yupConfig = FIELDS.reduce((config, field) => ({
+const yupConfig = FIELDS.reduce((config, f) => ({
   ...config,
-  [field.field || field]: Yup.string().required(`${field.field || field} is required`).max(field.max || DEFAULT_MAX_LEN)
+  [f.field]: Yup.string().required(`${startCase(f.field)} is required`).max(f.max)
 }), {});
 
 function SignUp() {
@@ -35,7 +35,7 @@ function SignUp() {
     formikHelpers.setSubmitting(true);
     api(HTTP_ENDPOINTS.signUp, values).call()
       .then(data => {
-        enqueueSnackbar('Signed up for Morze successfully!');
+        enqueueSnackbar('Signed up for Morze successfully!', { variant: 'success' });
         saveCredentials(data.token);
       })
       .catch(e => {

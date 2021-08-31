@@ -22,7 +22,7 @@ function SearchField({ expandable }) {
 
   const [searchConfig, setSearchConfig] = useState({
     term: '',
-    type: SEARCH_TYPES.any
+    type: SEARCH_TYPES.users
   });
 
   function beforeAny() {

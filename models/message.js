@@ -2,15 +2,16 @@
 const {
   Model
 } = require('sequelize');
-const { buildValidate } = require('../util/validation');
 module.exports = (sequelize, DataTypes) => {
   class Message extends Model {
     static associate(models) {
       this.belongsTo(models.User, {
-        foreignKey: 'user_id'
+        foreignKey: 'user_id',
+        as: 'user'
       });
       this.belongsTo(models.Chat, {
-        foreignKey: 'chat_id'
+        foreignKey: 'chat_id',
+        as: 'chat'
       });
       this.hasMany(models.MessageAttachment, {
         foreignKey: 'message_id',
@@ -22,14 +23,23 @@ module.exports = (sequelize, DataTypes) => {
         as: 'lastReadMessage',
         onDelete: 'SET NULL'
       });
+      this.belongsToMany(models.Message, {
+        foreignKey: 'mentioned_at',
+        otherKey: 'is_mentioned',
+        through: 'message_mentions',
+        as: 'mentionedMessages'
+      });
+      this.belongsToMany(models.Message, {
+        foreignKey: 'is_mentioned',
+        otherKey: 'mentioned_at',
+        through: 'message_mentions',
+        as: 'mentionedIn'
+      });
     }
   }
   Message.init({
     text: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-
-      validate: buildValidate(['required'], 'text')
+      type: DataTypes.TEXT
     },
   }, {
     sequelize,

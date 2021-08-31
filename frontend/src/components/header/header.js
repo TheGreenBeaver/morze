@@ -8,19 +8,33 @@ import Box from '@material-ui/core/Box';
 import Avatar from '@material-ui/core/Avatar';
 import { useDispatch, useSelector } from 'react-redux';
 import useScreenIsSmall from '../../hooks/use-screen-is-small';
-import { setModalContent } from '../../store/actions/general';
+import { setModalContent, setSidebarOpen } from '../../store/actions/general';
 import { UserModal } from '../modals';
+import IconButton from '@material-ui/core/IconButton';
+import { Close, Menu } from '@material-ui/icons';
 
 
 function Header() {
   const styles = useStyles();
   const screenIsSmall = useScreenIsSmall();
-  const { userData: { avatar, firstName, lastName } } = useSelector(state => state.account);
+  const { userData } = useSelector(state => state.account);
+  const { sidebarOpen } = useSelector(state => state.general);
   const dispatch = useDispatch();
+  const { avatar, firstName, lastName } = userData;
 
   return (
-    <AppBar position='fixed'>
+    <AppBar position='fixed' className={styles.appBar}>
       <Toolbar classes={{ root: styles.toolbar }}>
+        {
+          screenIsSmall &&
+          <IconButton
+            className={styles.sidebarButton}
+            onClick={() => dispatch(setSidebarOpen(!sidebarOpen))}
+          >
+            {sidebarOpen ? <Close /> : <Menu />}
+          </IconButton>
+        }
+
         <img src={logo} alt='logo' className={styles.logo} />
 
         <Box
@@ -38,7 +52,7 @@ function Header() {
             classes={{ root: styles.avatar }}
             onClick={() => dispatch(setModalContent({
               title: `${firstName} ${lastName}`,
-              body: <UserModal />
+              body: <UserModal userData={userData} />
             }))}
           />
         </Box>

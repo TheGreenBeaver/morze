@@ -10,8 +10,15 @@ const server = createServer(app);
 
 // Middleware
 useMiddleware(app, { prefix: 'app-level.' });
+// Static Content
+app.use(express.static(settings.STATIC_ROOT));
+app.use('/media', express.static(settings.MEDIA_ROOT));
 // API
 useRouting(app);
+// React index
+app.get('/*', (req, res) =>
+  res.sendFile(settings.REACT_INDEX)
+)
 // Error handlers
 useMiddleware(app, { prefix: 'errors.' });
 // WebSockets

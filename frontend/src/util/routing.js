@@ -28,7 +28,7 @@ const routerConfig = [
     auth: false
   },
   {
-    path: LINKS.chats,
+    path: `${LINKS.chats}/:chatWindowsConfig?`,
     component: Chats,
     exact: false,
     auth: true,
@@ -38,13 +38,13 @@ const routerConfig = [
   {
     path: EMAIL_ROUTES.map(pathname => `${CONFIRMATION_ROUTE_BASE}/${pathname}/:uid/:token`),
     component: Confirm,
-    exact: true,
+    exact: false,
     auth: ANY_AUTH
   },
   {
     path: EMAIL_ROUTES.map(pathname => `${EMAIL_SENT_ROUTE_BASE}/${pathname}`),
     component: EmailSent,
-    exact: true,
+    exact: false,
     auth: ANY_AUTH
   },
 ];
@@ -65,20 +65,21 @@ function getPathRegex(path) {
   const splPath = path.split('/');
   const modifiedPath = splPath.map(pathPart => {
     if (pathPart.startsWith(':')) {
-      const splPart = pathPart.split(/[)(]/);
+      const firstBraceIdx = pathPart.indexOf('(');
+      const lastBraceIdx = pathPart.lastIndexOf(')');
 
       const isRequired = !pathPart.endsWith('?');
-      const hasPattern = splPart.length > 1;
+      const hasPattern = firstBraceIdx !== -1 && lastBraceIdx !== -1 && lastBraceIdx - firstBraceIdx > 1;
       const situation = `${+isRequired}${+hasPattern}`;
       switch (situation) {
         case '00':
           return '?[^/]*';
         case '01':
-          return `?(${splPart[1]})?`;
+          return `?(${pathPart.substring(firstBraceIdx + 1, lastBraceIdx)})?`;
         case '10':
           return '[^/]+';
         case '11':
-          return splPart[1];
+          return pathPart.substring(firstBraceIdx + 1, lastBraceIdx);
         default:
           return ''
       }

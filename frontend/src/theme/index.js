@@ -1,4 +1,5 @@
 import { createTheme } from '@material-ui/core/styles';
+import { grey, teal, lime, pink, orange } from '@material-ui/core/colors';
 
 
 const theme = createTheme({
@@ -7,31 +8,35 @@ const theme = createTheme({
       main: '#ffcc00'
     },
     secondary: {
-      main: '#009688'
+      main: teal[500],
+      contrastText: '#fff'
     },
     success: {
-      main: '#c0ca33'
+      main: lime[600]
     },
     error: {
-      main: '#e91e63'
+      main: pink[500]
     },
     warning: {
-      main: '#f57c00'
+      main: orange[700]
     }
-  },
-
-  typography: {
-    fontFamily: '"Arial", sans-serif'
   },
 
   props: {
     MuiTextField: {
       fullWidth: true,
       margin: 'normal',
-      variant: 'outlined'
+      variant: 'outlined',
+      size: 'small'
     },
     MuiButton: {
       variant: 'contained'
+    },
+    MuiIconButton: {
+      color: 'primary'
+    },
+    MuiDialogContent: {
+      dividers: true
     }
   },
 
@@ -41,11 +46,38 @@ const theme = createTheme({
         minHeight: '100vh',
       }
     },
+    MuiContainer: {
+      maxWidthLg: {
+        maxWidth: '1480px !important'
+      }
+    },
     MuiFormControl: {
       marginNormal: {
         '&:first-child': {
           marginTop: 0
         }
+      }
+    },
+    MuiIconButton: {
+      root: {
+        background: 'none !important',
+      },
+      colorPrimary: {
+        color: grey[600],
+        '&:hover': {
+          color: teal[500]
+        }
+      },
+      colorSecondary: {
+        color: grey[400],
+        '&:hover': {
+          color: teal[300]
+        }
+      }
+    },
+    MuiBadge: {
+      anchorOriginTopRightRectangle: {
+        transform: 'scale(1) translate(120%, -50%)'
       }
     }
   }

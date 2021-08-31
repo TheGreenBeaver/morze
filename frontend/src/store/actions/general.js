@@ -26,9 +26,15 @@ const setModalContent = modalContent => ({
 
 const closeModal = () => setModalContent(null);
 
+const setSidebarOpen = open => ({
+  type: general.SET_SIDEBAR_OPEN,
+  open
+});
+
 export {
   setError,
   clearError,
   setModalContent,
-  closeModal
+  closeModal,
+  setSidebarOpen
 };

@@ -2,7 +2,10 @@ const httpStatus = require('http-status');
 const { dummyReject } = require('./misc');
 const { compareHashed } = require('./cryptography');
 const { AuthError } = require('./custom-errors');
-const { AuthToken, User } = require('../models/index');
+const { AuthToken, User, UserChatMembership } = require('../models/index');
+const { USER_AUTH, AUTH_TOKEN_LOG_IN, withLastRead } = require('./query-options');
+const { serializeMembershipsList } = require('../serializers/chats');
+const { Op } = require('sequelize');
 
 
 async function find({ Model, serializer = v => v, options }, req, res, next) {
@@ -33,7 +36,7 @@ async function create({ Model, serializer = v => v }, req, res, next) {
 }
 
 async function authorizeWithToken({ username, password }, res) {
-  const user = await User.findOne({ where: { username } });
+  const user = await User.findOne({ where: { username }, ...USER_AUTH });
   if (!user || !compareHashed(password, user.password)) {
     throw new AuthError(true);
   } else {
@@ -42,12 +45,30 @@ async function authorizeWithToken({ username, password }, res) {
   }
 }
 
+function listChats(user, filtering) {
+  return UserChatMembership.findAll({
+    where: { user_id: user.id, ...filtering },
+    attributes: ['isAdmin'],
+    ...withLastRead(true)
+  })
+    .then(memberships => {
+      const getUnreadCounts = memberships.map(({ chat, lastReadMessage }) =>
+        chat.countMessages({
+          where: { createdAt: { [Op.gt]: lastReadMessage ? lastReadMessage.createdAt : new Date(0) } }
+        })
+      );
+      return Promise.all(getUnreadCounts).then(counters =>
+        serializeMembershipsList(memberships, counters)
+      )
+    })
+}
+
 function checkAuthorization(key) {
   if (!key) {
     return dummyReject(new AuthError());
   }
   return AuthToken
-    .findByPk(key, { include: { model: User, as: 'user' } })
+    .findByPk(key, AUTH_TOKEN_LOG_IN)
     .then(authToken => {
       if (!authToken) {
         throw new AuthError();
@@ -61,5 +82,6 @@ module.exports = {
   list,
   create,
   authorizeWithToken,
-  checkAuthorization
+  checkAuthorization,
+  listChats
 };

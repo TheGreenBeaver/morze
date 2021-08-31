@@ -11,13 +11,11 @@ function getFkConfig(ref, Sequelize) {
 }
 
 function dropFk(queryInterface, tableName, ref) {
-  return {
-    then: (cb = () => {}) => queryInterface
-      .removeConstraint(tableName, `${tableName}_${ref}_id_fkey`)
-      .then(() => queryInterface
-        .removeColumn(tableName, `${ref}_id`).then(cb)
-      )
-  }
+  return queryInterface
+    .removeConstraint(tableName, `${tableName}_${ref}_id_fkey`)
+    .then(() => queryInterface
+      .removeColumn(tableName, `${ref}_id`)
+    );
 }
 
 module.exports = {

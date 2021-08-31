@@ -50,26 +50,29 @@ function wsErr(ws, code, endpoint) {
  * @param {WsResponse} response
  * @param {WebSocket=} current provide this only when broadcasting to everyone except current
  * @param {function(WebSocket): Promise=} extraCondition
+ * @param {function(Object, WebSocket): Object} adjustData
  */
 function wsBroadcast(
   wsServer, response,
-  { current, extraCondition = dummyResolve } = {}
+  { current, extraCondition = dummyResolve, adjustData = v => v } = {}
 ) {
   wsServer.clients.forEach(client => {
     if (
       (!current || client !== current) &&
       client.readyState === WebSocket.OPEN
     ) {
-      extraCondition(client).then(() => wsResp(response, client)).catch(noOp);
+      const adjustedData = adjustData(response.data, client);
+      extraCondition(client).then(() => wsResp({ ...response, data: adjustedData }, client)).catch(noOp);
     }
   });
 }
 
 function onlyMembers(members, client) {
-  return new Promise((resolve, reject) => members.includes(client.user) ? resolve() : reject());
+  return new Promise((resolve, reject) => members.map(m => m.id).includes(client.user.id) ? resolve() : reject());
 }
 
 function handleError(ws, endpoint, e) {
+  console.log(e);
   const custom = data => wsResp({
     status: httpStatus.BAD_REQUEST,
     url: endpoint,

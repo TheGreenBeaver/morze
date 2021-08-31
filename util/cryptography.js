@@ -1,6 +1,5 @@
 const crypto = require('crypto');
-const { now } = require('./misc');
-require('dotenv').config();
+const { now, getVar } = require('./misc');
 const settings = require('../config/settings');
 
 /**
@@ -9,7 +8,7 @@ const settings = require('../config/settings');
  * @returns {string} hmac256-hashed string
  */
 function hash(value) {
-  const hmac = crypto.createHmac('sha256', process.env.SECRET_KEY, { encoding: 'utf8' });
+  const hmac = crypto.createHmac('sha256', getVar('SECRET_KEY'), { encoding: 'utf8' });
   hmac.update(value);
   return hmac.digest('hex');
 }

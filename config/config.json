@@ -1,8 +1,19 @@
 {
-  "development": {
+  "dev": {
     "username": "postgres",
     "password": "password",
     "database": "morze",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "define": {
+      "timestamps": false,
+      "underscored": true
+    }
+  },
+  "testing": {
+    "username": "postgres",
+    "password": "password",
+    "database": "morze_testing",
     "host": "127.0.0.1",
     "dialect": "postgres",
     "define": {

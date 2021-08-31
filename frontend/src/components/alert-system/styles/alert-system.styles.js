@@ -17,7 +17,14 @@ const useStyles = makeStyles(({ palette: p }) => {
   return {
     variantSuccess: getConfig('success'),
     variantError: getConfig('error'),
-    variantInfo: getConfig('secondary'),
+    variantInfo: {
+      backgroundColor: p.secondary.main,
+      color: p.getContrastText(p.secondary.main),
+
+      '& .MuiSvgIcon-root': {
+        color: p.getContrastText(p.secondary.main)
+      }
+    },
     variantWarning: getConfig('warning'),
   };
 });

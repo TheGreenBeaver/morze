@@ -1,10 +1,12 @@
 const express = require('express');
 const useMiddleware = require('../middleware/index');
-const { User, Chat, Message } = require('../models/index');
+const { User } = require('../models/index');
 const { serializeUser } = require('../serializers/users');
-const { serializeChat } = require('../serializers/chats');
-const { serializeMessage } = require('../serializers/messages');
-const { OneValidationError } = require('../util/custom-errors');
+const { serializeMessageRecursive } = require('../serializers/messages');
+const { OneValidationError, NoSuchError } = require('../util/custom-errors');
+const { Op } = require('sequelize');
+const { USER_BASIC, withChatMessages } = require('../util/query-options');
+const { listChats } = require('../util/method-handlers');
 
 const router = express.Router();
 
@@ -13,8 +15,7 @@ useMiddleware(router, { prefix: 'auth.' });
 const SEARCH_TYPES = {
   users: 'users',
   chats: 'chats',
-  messages: 'messages',
-  any: 'any',
+  messages: 'messages'
 }
 
 router.get('/', async (req, res, next) => {
@@ -27,40 +28,49 @@ router.get('/', async (req, res, next) => {
   try {
     let searchResult;
     if (chatId) {
-      searchResult = await req.user.filterMessages(term, chatId);
+      const matchingChats = await req.user.getChats({
+        where: { id: chatId },
+        rejectOnEmpty: new NoSuchError('chat', chatId),
+        ...withChatMessages({ text: { [Op.iLike]: `%${term}%` } })
+      });
+      searchResult = matchingChats[0].messages.map(m => serializeMessageRecursive(m));
     } else {
       switch (type) {
         case SEARCH_TYPES.users:
-          searchResult = await User.filterUsers(term, req.user);
+          const usersData = await User.findAll({
+            where: {
+              [Op.and]: {
+                [Op.or]: {
+                  firstName: { [Op.iLike]: `%${term}%` },
+                  lastName: { [Op.iLike]: `%${term}%` },
+                  username: { [Op.iLike]: `%${term}%` }
+                },
+                id: { [Op.ne]: req.user.id }
+              }
+            },
+            ...USER_BASIC
+          });
+          searchResult = usersData.map(serializeUser);
           break;
         case SEARCH_TYPES.chats:
-          searchResult = await req.user.filterChats(term);
+          searchResult = await listChats(req.user, {
+            name: { [Op.iLike]: `%${term}%` }
+          });
           break;
         case SEARCH_TYPES.messages:
-          searchResult = await req.user.filterMessages(term);
-          break;
-        case SEARCH_TYPES.any:
-          searchResult = (await Promise.all([
-            User.filterUsers(term, req.user),
-            req.user.filterChats(term),
-            req.user.filterMessages(term)
-          ])).flat();
+          const allChats = await req.user.getChats({
+            where: { id: chatId },
+            rejectOnEmpty: new NoSuchError('chat', chatId),
+            ...withChatMessages({ text: { [Op.iLike]: `%${term}%` } })
+          });
+          searchResult = allChats.map(c => c.messages.map(m => serializeMessageRecursive(m))).flat();
           break;
         default:
       }
     }
 
-    return res.json(searchResult.map(entry => {
-      if (entry instanceof User) {
-        return serializeUser(entry);
-      }
-      if (entry instanceof Chat) {
-        return serializeChat(entry);
-      }
-      if (entry instanceof Message) {
-        return serializeMessage(entry);
-      }
-    }));
+    // TODO: refactor serialization + add pagination
+    return res.json(searchResult);
   } catch (e) {
     next(e);
   }

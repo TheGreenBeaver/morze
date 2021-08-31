@@ -10,6 +10,7 @@ const useStyles = makeStyles(theme => ({
   modalPaperRoot: {
     minWidth: 480,
     minHeight: 320,
+
     [theme.breakpoints.down('sm')]: {
       minWidth: 0,
       width: '70vw'

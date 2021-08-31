@@ -2,8 +2,8 @@ import { createContext, useContext, useEffect, useRef } from 'react';
 import useErrorHandler from '../hooks/use-error-handler';
 import useAuth from '../hooks/use-auth';
 import axios from 'axios';
-import { API_VERSION } from '../util/constants';
-import { ts } from '../util/misc';
+import { API_VERSION, HOST } from '../util/constants';
+import { v4 as uuid } from 'uuid';
 import useClearPath from '../hooks/use-clear-path';
 
 
@@ -17,7 +17,7 @@ function useAxios() {
 
 function AxiosContext({ children }) {
   const instance = useRef(axios.create({
-    baseURL: `http://localhost:8000/api/v${API_VERSION}/`
+    baseURL: `http${HOST}/api/v${API_VERSION}/`
   }));
   const CancelToken = useRef(axios.CancelToken);
   const tokens = useRef({});
@@ -40,7 +40,7 @@ function AxiosContext({ children }) {
     const optionsArgIdx = (urlIsCalculated ? url.length : 0) + !!method.withData;
     const specificOptions = other[optionsArgIdx];
 
-    const cancelId = `${theUrl}-${ts()}`;
+    const cancelId = `${theUrl}-${uuid()}`;
     const requestOptions = {
       ...specificOptions,
       cancelToken: new CancelToken.current(canceler => {

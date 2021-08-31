@@ -3,7 +3,8 @@ import { account, general } from '../actions/action-types';
 
 const initialState = {
   error: null,
-  modalContent: null
+  modalContent: null,
+  sidebarOpen: false
 };
 
 
@@ -15,6 +16,8 @@ const reducer = (state = initialState, action) => {
       return { ...state, modalContent: action.modalContent };
     case account.LOG_OUT:
       return { ...state, modalContent: null };
+    case general.SET_SIDEBAR_OPEN:
+      return { ...state, sidebarOpen: action.open };
     default:
       return state;
   }

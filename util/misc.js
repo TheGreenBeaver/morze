@@ -1,9 +1,21 @@
 const path = require('path');
 const { CustomError } = require('./custom-errors');
+const { last } = require('lodash');
+const settings = require('../config/settings');
+require('dotenv').config();
 
 
+function getVar(name, defaultVal = '') {
+  return process.env[name] || defaultVal;
+}
+
+const DEV_ENV = 'dev';
 function getEnv() {
-  return process.env.NODE_ENV || 'development';
+  return getVar('NODE_ENV', DEV_ENV);
+}
+
+function isDev() {
+  return getEnv() === DEV_ENV;
 }
 
 function getFileIsUsable(file, basename) {
@@ -16,6 +28,10 @@ function now() {
 
 function isActive(obj) {
   return obj.deletedAt == null;
+}
+
+function isUpdated(obj) {
+  return obj.createdAt && obj.updatedAt && obj.createdAt.getTime() !== obj.updatedAt.getTime();
 }
 
 function getValidationErrJson(validationResult) {
@@ -53,14 +69,47 @@ function noOp() {
   return null;
 }
 
+function userFullName(user) {
+  return `${user.firstName} ${user.lastName}`;
+}
+
+function namesList(users) {
+  const amount = users.length;
+  if (amount === 1) {
+    return userFullName(users[0]);
+  }
+
+  let firstPart, secondPart;
+  if (amount < 5) {
+    firstPart = users.slice(0, -1);
+    secondPart = userFullName(last(users));
+  } else {
+    firstPart = users.slice(0, 4);
+    secondPart = `${amount - 4} others`;
+  }
+
+  return `${firstPart.map(userFullName).join(', ')} and ${secondPart}`;
+}
+
+function composeMediaPath(file) {
+  const relativePath = path.relative(settings.SRC_DIRNAME, file.path);
+  return `http://${path.join(getVar('HOST', 'localhost:8000'), relativePath)}`;
+}
+
 module.exports = {
   getEnv,
   getFileIsUsable,
   now,
   isActive,
+  isUpdated,
   getValidationErrJson,
   getUniqueKeyName,
   dummyResolve,
   dummyReject,
-  noOp
+  noOp,
+  namesList,
+  userFullName,
+  getVar,
+  isDev,
+  composeMediaPath
 };

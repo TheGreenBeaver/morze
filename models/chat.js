@@ -13,7 +13,8 @@ module.exports = (sequelize, DataTypes) => {
       });
       this.hasMany(models.Message, {
         foreignKey: 'chat_id',
-        onDelete: 'CASCADE'
+        onDelete: 'CASCADE',
+        as: 'messages'
       });
     }
   }

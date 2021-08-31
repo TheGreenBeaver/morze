@@ -29,7 +29,7 @@ function useWs(server) {
         handler(message.data, {
           user,
           resp: toSend => wsResp({ data: toSend, url: endpoint }, ws),
-          broadcast: (toSend, { skipCurrent, extraCondition } = {}) => {
+          broadcast: (toSend, { skipCurrent, extraCondition, adjustData } = {}) => {
             const args = [wsServer, { data: toSend, url: endpoint }];
             const config = {};
             if (skipCurrent) {
@@ -37,6 +37,9 @@ function useWs(server) {
             }
             if (extraCondition) {
               config.extraCondition = extraCondition;
+            }
+            if (adjustData) {
+              config.adjustData = adjustData;
             }
             if (!isEmpty(config)) {
               args.push(config);
@@ -54,9 +57,10 @@ function useWs(server) {
     EVENTS.upgrade,
     (req, socket, head) => {
       console.log('New WebSocket connection request...');
-      const cookies = req.headers.cookie.split('; ');
+      const cookieHeader = req.headers.cookie;
+      const cookies = cookieHeader ? cookieHeader.split('; ') : [];
       const key = cookies.find(cookie => cookie.startsWith('Token='));
-      checkAuthorization(key.replace('Token=', ''))
+      checkAuthorization(cookieHeader ? key.replace('Token=', '') : '')
         .then(authToken => {
           wsServer.handleUpgrade(req, socket, head, ws => {
             wsServer.emit(EVENTS.connection, ws, req, authToken.user);

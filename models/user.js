@@ -36,25 +36,6 @@ module.exports = (sequelize, DataTypes) => {
             .then(results => results.flat())
         );
     }
-
-    filterChats(term) {
-      return this.getChats({ where: { name: { [Op.iLike]: `%${term}%` } } });
-    }
-
-    static filterUsers(term, current) {
-      return this.findAll({
-        where: {
-          [Op.and]: {
-            [Op.or]: {
-              firstName: { [Op.iLike]: `%${term}%` },
-              lastName: { [Op.iLike]: `%${term}%` },
-              username: { [Op.iLike]: `%${term}%` },
-            },
-            id: { [Op.not]: current.id }
-          }
-        }
-      });
-    }
   }
   User.init({
     firstName: {

@@ -1,95 +1,170 @@
 const { onlyMembers } = require('../util/ws');
-const { serializeMessage } = require('../serializers/messages');
-const { NoSuchError, CustomError } = require('../util/custom-errors');
-const { Message, User, Chat } = require('../models/index');
+const { serializeMessageRecursive } = require('../serializers/messages');
+const { NoSuchError, CustomError, OneValidationError } = require('../util/custom-errors');
+const { Message, User, MessageAttachment, UserChatMembership, sequelize } = require('../models/index');
+const {
+  withLastRead, MESSAGE_FULL, USER_BASIC, DUMMY, MESSAGE_GLANCE, MESSAGE_WITH_RECEIVERS, MESSAGE_WITH_RECEIVERS_DUMMY
+} = require('../util/query-options');
+const settings = require('../config/settings');
+const { QueryTypes, Op } = require('sequelize');
+const { differenceWith } = require('lodash');
 
 
-function send(data, { user, broadcast }) {
-  const { chat: chatId, text, attachments } = data;
+async function send(data, { user, broadcast }) {
+  const { chat: chatId, text, attachments: filePaths, mentionedMessages } = data;
 
-  return user
-    .getChats({ where: { id: chatId } })
-    .then(matchingChats => {
-      if (!matchingChats.length) {
-        throw new NoSuchError('chat', chatId);
-      }
+  if (!text && (!filePaths || !filePaths.length) && (!mentionedMessages || !mentionedMessages.length)) {
+    throw new CustomError({ [settings.ERR_FIELD]: 'A message without attachments or mentioned messages must have some text' });
+  }
 
-      const theChat = matchingChats[0];
-      return theChat
-        .createMessage({ text, attachments: attachments || [], user_id: user.id })
-        .then(newMessage =>
-          broadcast(
-            serializeMessage(newMessage), {
-              extraCondition: client => new Promise((resolve, reject) =>
-                client.user.hasChat(theChat).then(has => has ? resolve() : reject())
-              )
-            }
-          )
-        )
-    })
-}
+  const matchingChats = await user.getChats({ where: { id: chatId }, rejectOnEmpty: new NoSuchError('chat', chatId) });
 
-function edit(data, { user, resp, broadcast }) {
-  const { text: newText, attachments: newAttachments } = data;
-}
+  const theChat = matchingChats[0];
+  const attachments = (filePaths || []).map(fp => ({ file: fp.file }));
 
-function remove(data, { user, broadcast }) {
-  const { message: messageId } = data;
-  Message
-    .findByPk(messageId, {
-      rejectOnEmpty: new NoSuchError('message', messageId),
+  const newMessage = await theChat.createMessage(
+    { text, user_id: user.id, attachments },
+    {
       include: [
-        {
-          model: User,
-          attributes: ['id'],
-          as: 'user',
-          through: {
-            attributes: []
-          }
-        },
-        {
-          model: Chat,
-          as: 'chat',
-          include: {
-            model: User,
-            attributes: [],
-            as: 'users'
-          }
-        }
+        { model: MessageAttachment, as: 'attachments' },
+        { model: User, as: 'user', ...USER_BASIC }
       ]
-    })
-    .then(message => {
-      if (message.user.id !== user.id) {
-        throw new CustomError({ message: ['You can only delete your own messages'] });
-      }
-      const members = message.chat.users;
-
-      return message
-        .destroy()
-        .then(() => broadcast({ message: messageId }, {
-          extraCondition: client => onlyMembers(members, client)
-        }))
-    })
+    }
+  );
+  await theChat.UserChatMembership.setLastReadMessage(newMessage);
+  if (mentionedMessages && mentionedMessages.length) {
+    try {
+      await newMessage.setMentionedMessages(mentionedMessages.map(msg => msg.id));
+    } catch (e) {
+      // TODO: parse Error and check which messages don't exist
+      throw new NoSuchError('messages', [], 'mentionedMessages');
+    }
+  }
+  await newMessage.reload(MESSAGE_FULL);
+  const members = await theChat.getUsers(DUMMY);
+  broadcast(
+    { chat: { id: chatId }, message: newMessage }, {
+      extraCondition: client => onlyMembers(members, client),
+      adjustData: (data, client) => ({
+        ...data,
+        message: serializeMessageRecursive(data.message)
+      })
+    }
+  );
 }
 
-function markRead(data, { user, resp, broadcast }) {
-  const { message: messageId } = data;
+async function edit(data, { user, broadcast }) {
+  const { message: messageId, text: newText, attachments: newAttachments, mentionedMessages: newMentionedMessages } = data;
+
+  const matchingMessages = await user.getMessages({
+    where: { id: messageId }, ...MESSAGE_GLANCE, rejectOnEmpty: new NoSuchError('message', messageId)
+  });
+
+  const theMessage = matchingMessages[0];
+
+  const { text: oldText, attachments: oldAttachments, mentionedMessages: oldMentionedMessages } = theMessage;
+
+  const willHaveText = newText == null ? !!oldText : !!newText;
+  const willHaveAttachments = newAttachments == null ? !!oldAttachments.length : !!newAttachments.length;
+  const willHaveMentionedMessages = newMentionedMessages == null ? !!oldMentionedMessages.length : !!newMentionedMessages.length;
+
+  if (!willHaveText && !willHaveAttachments && !willHaveMentionedMessages) {
+    throw new CustomError({ [settings.ERR_FIELD]: 'A message without attachments or mentioned messages must have some text' });
+  }
+
+  if (newText != null) {
+    theMessage.text = newText;
+    await theMessage.save();
+  }
+  if (newAttachments != null) {
+    const newAttachmentsData = await MessageAttachment.bulkCreate(newAttachments.map(fp => ({ file: fp.file })));
+    await theMessage.setAttachments(newAttachmentsData);
+  }
+  if (newMentionedMessages != null) {
+    await theMessage.setMentionedMessages(newMentionedMessages.map(mMsg => mMsg.id));
+  }
+
+  await theMessage.reload(MESSAGE_WITH_RECEIVERS);
+  broadcast({
+      chat: { id: theMessage.chat_id },
+      message: serializeMessageRecursive(theMessage)
+    }, {
+      extraCondition: client => onlyMembers(theMessage.chat.users, client),
+    }
+  );
+}
+
+async function remove(data, { user, broadcast }) {
+  const { messages: messageIds } = data;
+
+  const matchingMessages = await user.getMessages({
+    where: { id: messageIds }, ...MESSAGE_WITH_RECEIVERS_DUMMY
+  });
+  if (matchingMessages.length !== messageIds) {
+    throw new NoSuchError('message', differenceWith(messageIds, matchingMessages, (i, m) => m.i === i));
+  }
+  const theMessage = matchingMessages[0];
+  const members = theMessage.chat.users;
+  await theMessage.destroy();
+  broadcast({ messages: messageIds }, {
+    extraCondition: client => onlyMembers(members, client)
+  });
+}
+
+async function markRead(data, { user, resp }) {
+  const { messages: messageIds } = data;
+  const memberships = await UserChatMembership.findAll({ where: { user_id: user.id }, ...withLastRead(false) });
+  const userChats = memberships.map(m => m.chat.id);
+
+  const queryResult = await sequelize.query(
+    'SELECT count(*), "latestOfMarkedId", "chatId", "latestOfMarkedTime" FROM (' +
+    'SELECT chat_id "chatId", last_value(id) OVER (PARTITION BY chat_id) "latestOfMarkedId", ' +
+    'last_value(created_at) OVER (PARTITION BY chat_id) "latestOfMarkedTime" FROM message ' +
+    'WHERE id IN (:messageIds) AND chat_id IN (:userChats) ORDER BY chat_id DESC, created_at DESC) as ord ' +
+    'GROUP BY "chatId", "latestOfMarkedId", "latestOfMarkedTime"', {
+      replacements: { messageIds, userChats },
+      type: QueryTypes.SELECT
+    }
+  );
+
+  const foundMessagesCount = queryResult.reduce((cnt, { count: localCnt }) => cnt + (+localCnt), 0);
+  if (foundMessagesCount !== messageIds.length) {
+    throw new OneValidationError('Some of the marked messages don\'t exist', 'messages');
+  }
+
+  for (const row of queryResult) {
+    const { chatId, latestOfMarkedId } = row;
+    const theMembership = await UserChatMembership.findOne({
+      where: { chat_id: chatId, user_id: user.id },
+      rejectOnEmpty: new NoSuchError('chat', chatId, settings.ERR_FIELD)
+    });
+
+    await theMembership.setLastReadMessage(latestOfMarkedId);
+  }
+
+  resp(queryResult.map(row => ({ createdAt: row.latestOfMarkedTime, id: row.latestOfMarkedId })))
 }
 
 function list(data, { user, resp }) {
   const { chat: chatId } = data;
 
   // TODO: Pagination
-  return user
-    .getChats({ where: { id: chatId } })
-    .then(matchingChats => {
-      if (!matchingChats.length) {
+  return UserChatMembership
+    .findOne({
+      where: { chat_id: chatId, user_id: user.id },
+      ...withLastRead(false)
+    })
+    .then(membership => {
+      if (membership == null) {
         throw new NoSuchError('chat', chatId);
       }
 
-      return matchingChats[0]
-        .getMessages()
-        .then(messages => resp(messages.map(serializeMessage)))
+      return membership.chat
+        .getMessages(MESSAGE_FULL)
+        .then(messages => resp({
+          chat: { id: chatId },
+          messages: messages.map(msg => serializeMessageRecursive(msg))
+        }));
     })
 }
 

@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { node } from 'prop-types';
 import { useDispatch } from 'react-redux';
-import { WS_ENDPOINTS} from '../util/constants';
+import { HOST, WS_ACTION_MAPPING } from '../util/constants';
 import useErrorHandler from '../hooks/use-error-handler';
-import { addChat, setChats } from '../store/actions/chats';
 import useAuth from '../hooks/use-auth';
 
 
@@ -27,7 +26,7 @@ function WsContext({ children }) {
 
   useEffect(() => {
     if (isAuthorized) {
-      const socket = new WebSocket('ws://localhost:8000/ws');
+      const socket = new WebSocket(`ws${HOST}/ws`);
 
       socket.onopen = () => {
         waiting.current.forEach(({ url, data }) => {
@@ -40,19 +39,8 @@ function WsContext({ children }) {
 
         if (status && !handleBackendError({ response: { status } })) {
           setUnhandledError(data);
-        } else {
-          switch (url) {
-            case WS_ENDPOINTS.chats.list:
-              dispatch(setChats(data));
-              break;
-            case WS_ENDPOINTS.chats.create:
-              dispatch(addChat(data));
-              break;
-            case WS_ENDPOINTS.messages.send:
-              console.log(data);
-              break;
-            default:
-          }
+        } else if (!status) {
+          dispatch(WS_ACTION_MAPPING[url](data));
         }
       };
 
