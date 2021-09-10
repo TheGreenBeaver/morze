@@ -141,12 +141,13 @@ function Chats() {
           >
 
             {
-              !screenIsSmall && moreThanOne &&
+              !screenIsSmall &&
               <React.Fragment>
                 <HintButton
                   title='Rotate slots counter-clockwise'
                   buttonProps={{
-                    onClick: () => rotate(CHAT_WINDOWS_CONFIG.rotationActions.counterClockwise)
+                    onClick: () => rotate(CHAT_WINDOWS_CONFIG.rotationActions.counterClockwise),
+                    disabled: !moreThanOne
                   }}
                 >
                   <RotateLeft />
@@ -155,7 +156,8 @@ function Chats() {
                 <HintButton
                   title='Rotate slots clockwise'
                   buttonProps={{
-                    onClick: () => rotate(CHAT_WINDOWS_CONFIG.rotationActions.clockwise)
+                    onClick: () => rotate(CHAT_WINDOWS_CONFIG.rotationActions.clockwise),
+                    disabled: !moreThanOne
                   }}
                 >
                   <RotateRight />
@@ -163,17 +165,15 @@ function Chats() {
               </React.Fragment>
             }
 
-            {
-              notMaxSlots &&
-              <HintButton
-                title='Add slot'
-                buttonProps={{
-                  onClick: () => addSlot(chatIds)
-                }}
-              >
-                <LibraryAdd />
-              </HintButton>
-            }
+            <HintButton
+              title='Add slot'
+              buttonProps={{
+                onClick: () => addSlot(),
+                disabled: !notMaxSlots
+              }}
+            >
+              <LibraryAdd />
+            </HintButton>
           </Box>
         </Box>
         <Divider />
@@ -191,7 +191,7 @@ function Chats() {
                 <ListItem
                   button
                   key={chat.id}
-                  draggable
+                  draggable={!screenIsSmall}
                   divider
                   classes={{ button: styles.chatItem }}
                   onDragStart={() => setDraggedItem(chat.id)}

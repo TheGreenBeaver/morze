@@ -98,12 +98,7 @@ function parseConfig(config, availableChatIds, screenIsSmall) {
     };
   }
 
-  const patternString = !screenIsSmall
-    ? `^id=(\\d+|_)(,(\\d+|_)){0,${CHAT_WINDOWS_CONFIG.maxSlots.large - 1}}(&rotation=(90|180|270))?$`
-    : '^id=(\\d+|_)(,(\\d+|_))?$';
-  const pattern = new RegExp(patternString);
-
-  if (!pattern.test(config)) {
+  if (!Object.values(CHAT_WINDOWS_CONFIG.patterns).some(pattern => pattern.test(config))) {
     return { redirect: LINKS.chats };
   }
 
@@ -116,12 +111,16 @@ function parseConfig(config, availableChatIds, screenIsSmall) {
   const slotsAmount = chatIds.length;
   const acceptedChatIds = chatIds.map(id => availableChatIds.includes(id) ? id : null);
 
-  const unnecessaryRotation = slotsAmount === 1 && !!rotationConfig;
+  const unnecessaryRotation = (slotsAmount === 1 || screenIsSmall) && !!rotationConfig;
   const invalidIds = !isEqual(acceptedChatIds, chatIds);
+  const smallScreenLargeConfig = screenIsSmall && !CHAT_WINDOWS_CONFIG.patterns.small.test(config);
 
-  if (unnecessaryRotation || invalidIds) {
+  if (unnecessaryRotation || invalidIds || smallScreenLargeConfig) {
     const newRotationConfig = unnecessaryRotation ? '' : `&${rotationConfig}`;
-    const newChatIdsConfig = `id=${acceptedChatIds.map(id => id == null ? '_' : id).join(',')}`;
+    const newChatIdsConfig = `id=${makeChatIdsConfig(smallScreenLargeConfig
+      ? acceptedChatIds.slice(0, 2)
+      : acceptedChatIds
+    )}`;
 
     return { redirect: `${LINKS.chats}/${newChatIdsConfig}${newRotationConfig}` };
   }

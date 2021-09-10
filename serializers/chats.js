@@ -1,11 +1,11 @@
-const { serializeMessageRecursive } = require('./messages');
+const { serializeMessageRecursive, serializeLastRead } = require('./messages');
 
 
 function serializeMembershipBase(membership, unreadCount) {
   return {
     isAdmin: membership.isAdmin,
     ...membership.chat.dataValues,
-    lastReadMessage: membership.lastReadMessage ? membership.lastReadMessage.dataValues : null,
+    lastReadMessage: serializeLastRead(membership.lastReadMessage),
     unreadCount,
     messages: membership.chat.messages.map(message => serializeMessageRecursive(message))
   };

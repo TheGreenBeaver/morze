@@ -4,6 +4,7 @@ const settings = require('./config/settings');
 const useRouting = require('./routing/index');
 const useMiddleware = require('./middleware/index');
 const useWs = require('./ws/index');
+const { getHost } = require('./util/misc');
 
 const app = express();
 const server = createServer(app);
@@ -25,5 +26,5 @@ useMiddleware(app, { prefix: 'errors.' });
 useWs(server);
 
 server.listen(settings.PORT, () =>
-  console.log(`Server is running on port ${settings.PORT}...`)
+  console.log(`Server is running on ${getHost()}...`)
 );

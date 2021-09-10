@@ -98,16 +98,16 @@ async function invite(data, { broadcast, user }) {
   const currentUsers = theChat.users;
 
   const notification = await theChat.createMessage({ text: `${user.firstName} ${user.lastName} invited ${namesList(invitedUsers)}` });
-  await theChat.addUsers(invitedUsers, { through: invitedUsers.map(() => ({ last_read_msg_id: notification.id })) });
+  await theChat.addUsers(invitedUsers, { through: { last_read_msg_id: notification.id } });
   theChat.reload(CHAT_FULL);
 
   broadcast({ theChat, notification }, {
     extraCondition: client => onlyMembers(invitedUsers, client),
     adjustData: (data, client) =>
       currentUsers.includes(client.user)
-        ? serializeMessageRecursive(data.notification)
-        : serializeMembershipBase({ chat: data.theChat, lastReadMessage: data.notification }, 0)
-  })
+        ? { message: serializeMessageRecursive(data.notification) }
+        : { chat: serializeMembershipBase({ chat: data.theChat, lastReadMessage: data.notification }, 1) }
+  });
 }
 
 function list(data, { user, resp }) {

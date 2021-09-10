@@ -1,9 +1,9 @@
 import { useMediaQuery, useTheme } from '@material-ui/core';
 
 
-function useScreenIsSmall() {
+function useScreenIsSmall(breakpoint = 'sm') {
   const { breakpoints } = useTheme();
-  return useMediaQuery(breakpoints.down('xs'));
+  return useMediaQuery(breakpoints.down(breakpoint));
 }
 
 export default useScreenIsSmall;

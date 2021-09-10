@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { node } from 'prop-types';
-import { useWs } from './ws-context';
+import { useWs, useWsEvent } from './ws-context';
 import { useSelector } from 'react-redux';
 import { Redirect, useHistory, useParams } from 'react-router-dom';
 import {
@@ -15,6 +15,7 @@ import { debounce, pick } from 'lodash';
 import { CHAT_WINDOWS_CONFIG, WS_ENDPOINTS } from '../util/constants';
 import { useSnackbar } from 'notistack';
 import useScreenIsSmall from '../hooks/use-screen-is-small';
+import zDate from '../util/dates';
 
 
 const Context = createContext({
@@ -25,12 +26,6 @@ const Context = createContext({
    * @param {number} chatId
    */
   readMessage: (messageId, createdAt, chatId) => {},
-  /**
-   *
-   * @param {Array<Object>|function(Array<Object>):Array<Object>} upd
-   */
-  setMessagesToMention: upd => {},
-  messagesToMention: [],
   addOrRemoveChat: chatId => {},
   insertOrMoveChat: (chatId, newSlot) => {},
   addSlot: chatId => {},
@@ -48,7 +43,7 @@ const Context = createContext({
     moreThanOne: false,
     noChats: true,
   },
-  history: null
+  history: null,
 });
 
 function useChats() {
@@ -67,7 +62,6 @@ function ChatsContext({ children }) {
   const chats = useSelector(state => state.chats);
 
   const [messagesToRead, setMessagesToRead] = useState([]);
-  const [messagesToMention, setMessagesToMention] = useState([]);
 
   const debouncedWs = useRef(debounce((currentSend, currentMessagesToRead) => {
     currentSend(WS_ENDPOINTS.messages.markRead, { messages: currentMessagesToRead });
@@ -80,6 +74,11 @@ function ChatsContext({ children }) {
       debouncedWs.current(send, messagesToRead);
     }
   }, [indicator]);
+
+  useWsEvent(
+    WS_ENDPOINTS.messages.markRead,
+    () => setMessagesToRead([])
+  );
 
   useEffect(() => {
     send(WS_ENDPOINTS.chats.list)
@@ -94,9 +93,7 @@ function ChatsContext({ children }) {
 
   function readMessage(messageId, createdAt, chatId) {
     const { lastReadMessage } = chats[chatId];
-    const lastReadAsDate = new Date(lastReadMessage?.createdAt || 0);
-    const newMsgAsDate = new Date(createdAt);
-    if (lastReadAsDate.getTime() < newMsgAsDate.getTime() && !messagesToRead.includes(messageId)) {
+    if (zDate(createdAt).isAfter(lastReadMessage?.createdAt, true) && !messagesToRead.includes(messageId)) {
       setMessagesToRead(curr => [...curr, messageId]);
     }
   }
@@ -112,8 +109,6 @@ function ChatsContext({ children }) {
     <Context.Provider
       value={{
         readMessage,
-        setMessagesToMention,
-        messagesToMention,
         addOrRemoveChat: chatId => {
           const { redirect: newLocation, message } = addOrRemoveChat(chatIds, rotationDegrees, screenIsSmall, chatId);
           if (message) {
@@ -135,7 +130,7 @@ function ChatsContext({ children }) {
           noChats: !Object.values(chats).length,
           notMaxSlots: slotsAmount < maxSlots
         },
-        history
+        history,
       }}
     >
       {children}

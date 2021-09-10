@@ -27,10 +27,15 @@ function getEmailMsg() {
   return 'Please enter a valid email address';
 }
 
+function getIsInMsg(field, [values]) {
+  return `${startCase(field)} must be one of ${values.join(', ')}`;
+}
+
 const messages = {
   len: getLenMsg,
   required: getRequiredMsg,
-  isEmail: getEmailMsg
+  isEmail: getEmailMsg,
+  isIn: getIsInMsg
 };
 
 // Build 'validate' for a model

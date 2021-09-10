@@ -26,7 +26,7 @@ const useStyles = makeStyles(theme => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
     zIndex: 10,
     background: theme.palette.background.paper,
-    ...matchToolbar(theme, 'height', v => v * 0.9)
+    ...matchToolbar(theme, 'height', v => v * 0.9),
   },
   dragIndicator: {
     color: theme.palette.grey[400],
@@ -34,35 +34,14 @@ const useStyles = makeStyles(theme => ({
       color: theme.palette.secondary.light
     }
   },
-  inputWrapper: {
-    padding: `${theme.spacing(1)}px ${theme.spacing(2)}px ${theme.spacing(2)}px ${theme.spacing(3)}px`,
-    display: 'flex',
-    alignItems: 'center',
-    maxWidth: 800,
-    width: '100%',
-    margin: '0 auto'
-  },
+
   messagesWrapper: {
     ...matchToolbar(theme, 'paddingTop', v => v * 0.9 + theme.spacing(2)),
     paddingLeft: theme.spacing(3),
     paddingRight: theme.spacing(3),
     paddingBottom: theme.spacing(1)
   },
-  oneMessageWrapper: {
-    width: '100%',
-    maxWidth: 600,
-    borderRadius: theme.shape.borderRadius,
-    border: '2px solid',
-    borderColor: 'transparent',
-    cursor: 'pointer',
 
-    '&:hover': {
-      borderColor: teal[50]
-    }
-  },
-  oneMessageWrapperSelected: {
-    background: teal[50]
-  },
   mentionedMessagesDisplay: {
     
   }

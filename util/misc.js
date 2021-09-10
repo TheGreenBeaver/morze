@@ -9,6 +9,10 @@ function getVar(name, defaultVal = '') {
   return process.env[name] || defaultVal;
 }
 
+function getHost() {
+  return `http://${getVar('HOST', 'localhost')}:${settings.PORT}`;
+}
+
 const DEV_ENV = 'dev';
 function getEnv() {
   return getVar('NODE_ENV', DEV_ENV);
@@ -37,7 +41,12 @@ function isUpdated(obj) {
 function getValidationErrJson(validationResult) {
   return validationResult.errors.reduce(
     (acc, err) => {
-      acc[err.path] = err.message;
+      if (acc[err.path] == null) {
+        acc[err.path] = '';
+      } else {
+        acc[err.path] += ' ';
+      }
+      acc[err.path] += err.message;
       return acc;
     }, {})
 }
@@ -93,7 +102,7 @@ function namesList(users) {
 
 function composeMediaPath(file) {
   const relativePath = path.relative(settings.SRC_DIRNAME, file.path);
-  return `http://${path.join(getVar('HOST', 'localhost:8000'), relativePath)}`;
+  return `${getHost()}/${relativePath}`;
 }
 
 module.exports = {
@@ -111,5 +120,6 @@ module.exports = {
   userFullName,
   getVar,
   isDev,
-  composeMediaPath
+  composeMediaPath,
+  getHost
 };

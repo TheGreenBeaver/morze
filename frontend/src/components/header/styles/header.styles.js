@@ -5,7 +5,7 @@ import { matchToolbar } from '../../../util/misc';
 const useStyles = makeStyles(theme => ({
   logo: matchToolbar(theme, 'height', v => 0.8 * v),
   toolbar: {
-    [theme.breakpoints.down('xs')]: {
+    [theme.breakpoints.down('sm')]: {
       justifyContent: 'center'
     }
   },

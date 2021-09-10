@@ -1,7 +1,7 @@
 const { onlyMembers } = require('../util/ws');
 const { serializeMessageRecursive } = require('../serializers/messages');
 const { NoSuchError, CustomError, OneValidationError } = require('../util/custom-errors');
-const { Message, User, MessageAttachment, UserChatMembership, sequelize } = require('../models/index');
+const { User, MessageAttachment, UserChatMembership, sequelize, Message } = require('../models/index');
 const {
   withLastRead, MESSAGE_FULL, USER_BASIC, DUMMY, MESSAGE_GLANCE, MESSAGE_WITH_RECEIVERS, MESSAGE_WITH_RECEIVERS_DUMMY
 } = require('../util/query-options');
@@ -20,7 +20,7 @@ async function send(data, { user, broadcast }) {
   const matchingChats = await user.getChats({ where: { id: chatId }, rejectOnEmpty: new NoSuchError('chat', chatId) });
 
   const theChat = matchingChats[0];
-  const attachments = (filePaths || []).map(fp => ({ file: fp.file }));
+  const attachments = (filePaths || []).map(fp => ({ file: fp.file, type: fp.type }));
 
   const newMessage = await theChat.createMessage(
     { text, user_id: user.id, attachments },
@@ -34,7 +34,7 @@ async function send(data, { user, broadcast }) {
   await theChat.UserChatMembership.setLastReadMessage(newMessage);
   if (mentionedMessages && mentionedMessages.length) {
     try {
-      await newMessage.setMentionedMessages(mentionedMessages.map(msg => msg.id));
+      await newMessage.setMentionedMessages(mentionedMessages);
     } catch (e) {
       // TODO: parse Error and check which messages don't exist
       throw new NoSuchError('messages', [], 'mentionedMessages');
@@ -42,15 +42,10 @@ async function send(data, { user, broadcast }) {
   }
   await newMessage.reload(MESSAGE_FULL);
   const members = await theChat.getUsers(DUMMY);
-  broadcast(
-    { chat: { id: chatId }, message: newMessage }, {
-      extraCondition: client => onlyMembers(members, client),
-      adjustData: (data, client) => ({
-        ...data,
-        message: serializeMessageRecursive(data.message)
-      })
-    }
-  );
+  broadcast({ chat: { id: chatId }, message: serializeMessageRecursive(newMessage) }, {
+    extraCondition: client => onlyMembers(members, client),
+    adjustData: (data, client) => ({ ...data, fromSelf: client.user === user })
+  });
 }
 
 async function edit(data, { user, broadcast }) {
@@ -77,8 +72,9 @@ async function edit(data, { user, broadcast }) {
     await theMessage.save();
   }
   if (newAttachments != null) {
-    const newAttachmentsData = await MessageAttachment.bulkCreate(newAttachments.map(fp => ({ file: fp.file })));
-    await theMessage.setAttachments(newAttachmentsData);
+    const attachmentsToCreate = newAttachments.filter(att => att.id == null);
+    const newAttachmentsData = await MessageAttachment.bulkCreate(attachmentsToCreate.map(fp => ({ file: fp.file, type: fp.type })));
+    await theMessage.setAttachments([...newAttachmentsData, ...newAttachments.filter(att => att.id != null).map(att => att.id)]);
   }
   if (newMentionedMessages != null) {
     await theMessage.setMentionedMessages(newMentionedMessages.map(mMsg => mMsg.id));
@@ -132,17 +128,25 @@ async function markRead(data, { user, resp }) {
     throw new OneValidationError('Some of the marked messages don\'t exist', 'messages');
   }
 
+  const counts = {};
   for (const row of queryResult) {
-    const { chatId, latestOfMarkedId } = row;
+    const { chatId, latestOfMarkedId, latestOfMarkedTime } = row;
     const theMembership = await UserChatMembership.findOne({
       where: { chat_id: chatId, user_id: user.id },
       rejectOnEmpty: new NoSuchError('chat', chatId, settings.ERR_FIELD)
     });
 
     await theMembership.setLastReadMessage(latestOfMarkedId);
+    counts[chatId] = await Message.count({
+      where: { createdAt: { [Op.gt]: latestOfMarkedTime } }
+    });
   }
 
-  resp(queryResult.map(row => ({ createdAt: row.latestOfMarkedTime, id: row.latestOfMarkedId })))
+  resp(queryResult.map(row => ({
+    chat: { id: row.chatId },
+    lastReadMessage: { createdAt: row.latestOfMarkedTime.toISOString(), id: row.latestOfMarkedId },
+    unreadCount: counts[row.chatId]
+  })));
 }
 
 function list(data, { user, resp }) {

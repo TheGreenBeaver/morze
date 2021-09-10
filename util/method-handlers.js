@@ -1,5 +1,4 @@
 const httpStatus = require('http-status');
-const { dummyReject } = require('./misc');
 const { compareHashed } = require('./cryptography');
 const { AuthError } = require('./custom-errors');
 const { AuthToken, User, UserChatMembership } = require('../models/index');
@@ -36,8 +35,8 @@ async function create({ Model, serializer = v => v }, req, res, next) {
 }
 
 async function authorizeWithToken({ username, password }, res) {
-  const user = await User.findOne({ where: { username }, ...USER_AUTH });
-  if (!user || !compareHashed(password, user.password)) {
+  const user = await User.findOne({ where: { username }, ...USER_AUTH, rejectOnEmpty: new AuthError(true) });
+  if (!compareHashed(password, user.password)) {
     throw new AuthError(true);
   } else {
     const authToken = await AuthToken.create({ user_id: user.id });
@@ -63,18 +62,11 @@ function listChats(user, filtering) {
     })
 }
 
-function checkAuthorization(key) {
+async function checkAuthorization(key) {
   if (!key) {
-    return dummyReject(new AuthError());
+    throw new AuthError();
   }
-  return AuthToken
-    .findByPk(key, AUTH_TOKEN_LOG_IN)
-    .then(authToken => {
-      if (!authToken) {
-        throw new AuthError();
-      }
-      return authToken;
-    });
+  return await AuthToken.findByPk(key, { ...AUTH_TOKEN_LOG_IN, rejectOnEmpty: new AuthError() });
 }
 
 module.exports = {

@@ -11,7 +11,7 @@ const httpStatus = require('http-status');
 const settings = require('../config/settings');
 const { capitalize, snakeCase } = require('lodash');
 const { USER_BASIC, userSelfAttrs } = require('../util/query-options');
-const { getVar, composeMediaPath } = require('../util/misc');
+const { composeMediaPath, getHost } = require('../util/misc');
 const useMulter = require('../middleware/multer');
 
 
@@ -34,7 +34,7 @@ router.post('/', async (req, res, next) => {
     const savedUser = await newUser.save();
 
     const verificationToken = await generateToken(savedUser);
-    const link = `http://${getVar('HOST', 'localhost:8000')}/confirm/verify/${getB36(savedUser.id)}/${verificationToken}`;
+    const link = `${getHost()}/confirm/verify/${getB36(savedUser.id)}/${verificationToken}`;
     await sendMail({ html: verification(link), subject: 'Morze Registration' }, savedUser.email);
 
     await methodHandlers.authorizeWithToken({ username: savedUser.username, password: req.body.password }, res);

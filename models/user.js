@@ -23,19 +23,6 @@ module.exports = (sequelize, DataTypes) => {
         onDelete: 'CASCADE'
       });
     }
-
-    filterMessages(term, chatId) {
-      const args = chatId == null
-        ? []
-        : [{ where: { id: chatId }, rejectOnEmpty: new NoSuchError('chat', chatId) }];
-      return this
-        .getChats(...args)
-        .then(chats =>
-          Promise
-            .all(chats.map(chat => chat.getMessages({ where: { text: { [Op.iLike]: `%${term}%` } } })))
-            .then(results => results.flat())
-        );
-    }
   }
   User.init({
     firstName: {

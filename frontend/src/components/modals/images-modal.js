@@ -1,23 +1,30 @@
 import React, { useState } from 'react';
 import { number } from 'prop-types';
 import { useSelector } from 'react-redux';
-import { isFileType } from '../../util/misc';
 import useStyles from './styles/images-modal.styles';
 import Box from '@material-ui/core/Box';
 import { ChevronLeft, ChevronRight } from '@material-ui/icons';
 import clsx from 'clsx';
 import CenterBox from '../center-box';
 import IconButton from '@material-ui/core/IconButton';
+import { FILE_TYPES } from '../../util/constants';
 
 
 function ImagesModal({ chatId, initialImageId }) {
   const allChats = useSelector(state => state.chats);
   const chatData = allChats[chatId];
+
+  function listImgAttachments(msg) {
+    return msg.attachments.filter(({ type }) => type === FILE_TYPES.img);
+  }
+
   const allImages = chatData.messages
-    .map(msg =>
-      msg.attachments.filter(({ file }) => isFileType('img', file))
+    .map(msg => [
+        ...listImgAttachments(msg),
+        ...msg.mentionedMessages.map(listImgAttachments)
+      ]
     )
-    .flat();
+    .flat(2);
 
   function countIdx(id) {
     return allImages.findIndex(imageData => imageData.id === id);

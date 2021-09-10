@@ -26,10 +26,11 @@ const yupConfig = FIELDS.reduce((config, f) => ({
 }), {});
 
 function SignUp() {
-  const styles = useFormStyles();
   const { enqueueSnackbar } = useSnackbar();
   const { saveCredentials } = useAuth();
   const { api } = useAxios();
+
+  const styles = useFormStyles();
 
   function onSubmit(values, formikHelpers) {
     formikHelpers.setSubmitting(true);

@@ -4,16 +4,29 @@ import { useDispatch } from 'react-redux';
 import { HOST, WS_ACTION_MAPPING } from '../util/constants';
 import useErrorHandler from '../hooks/use-error-handler';
 import useAuth from '../hooks/use-auth';
+import { omit } from 'lodash';
 
 
 const Context = createContext({
   send: () => {},
   unhandledError: null,
-  setUnhandledError: () => {}
+  setUnhandledError: () => {},
+  eventsData: {}
 });
 
 function useWs() {
-  return useContext(Context);
+  return omit(useContext(Context), 'eventsData');
+}
+
+function useWsEvent(url, callback, extraDeps = []) {
+  const { eventsData } = useContext(Context);
+  const data = Array.isArray(url) ? url.map(u => eventsData[u]) :  [eventsData[url]];
+
+  useEffect(() => {
+    if (data.some(d => !!d)) {
+      callback(...data, ...extraDeps);
+    }
+  }, [...data, ...extraDeps])
 }
 
 function WsContext({ children }) {
@@ -22,6 +35,7 @@ function WsContext({ children }) {
   const dispatch = useDispatch();
   const { isAuthorized } = useAuth();
   const [unhandledError, setUnhandledError] = useState(null);
+  const [eventsData, setEventsData] = useState({});
   const handleBackendError = useErrorHandler();
 
   useEffect(() => {
@@ -41,6 +55,7 @@ function WsContext({ children }) {
           setUnhandledError(data);
         } else if (!status) {
           dispatch(WS_ACTION_MAPPING[url](data));
+          setEventsData(curr => ({ ...curr, [url]: data }));
         }
       };
 
@@ -75,7 +90,7 @@ function WsContext({ children }) {
   }
 
   return (
-    <Context.Provider value={{ send, unhandledError, setUnhandledError }}>
+    <Context.Provider value={{ send, unhandledError, setUnhandledError, eventsData }}>
       {children}
     </Context.Provider>
   );
@@ -86,4 +101,4 @@ WsContext.propTypes = {
 };
 
 export default WsContext;
-export { useWs };
+export { useWs, useWsEvent };

@@ -14,15 +14,14 @@ import { HTTP_ENDPOINTS } from './util/constants';
 
 
 function App() {
-  const dispatch = useDispatch();
   const { pathname } = useLocation();
 
+  const dispatch = useDispatch();
   const { userData } = useSelector(state => state.account);
   const { error } = useSelector(state => state.general);
+
   const { isAuthorized } = useAuth();
   const { api } = useAxios();
-
-  const userState = [isAuthorized, userData?.isVerified];
 
   useEffect(() => {
     dispatch(clearError());
@@ -35,6 +34,7 @@ function App() {
     }
   }, [isAuthorized]);
 
+
   if (error) {
     return <ErrorPage />;
   }
@@ -43,6 +43,7 @@ function App() {
     return <LoadingScreen />;
   }
 
+  const userState = [isAuthorized, userData?.isVerified];
   const Layout = userState.every(attr => !!attr) ? FullScreenLayout : OneCardLayout;
 
   return (

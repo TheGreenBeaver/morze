@@ -1,25 +1,28 @@
 import { chats } from '../actions/action-types';
 import { cloneDeep } from 'lodash';
+import { INITIAL_MENTIONED_DATA, INITIAL_MSG_DATA } from '../../util/constants';
+import { applyUpd } from '../../util/misc';
 
 
 const initialState = null;
 
 
-function handleNewMessage(state, { message, chatId }) {
+function handleNewMessage(state, { message, chatId, fromSelf }) {
   const updatedChat = state[chatId];
 
   return {
     ...state,
     [chatId]: {
       ...updatedChat,
-      unreadCount: updatedChat.unreadCount + 1,
-      messages: [message, ...updatedChat.messages]
+      unreadCount: fromSelf ? 0 : updatedChat.unreadCount + 1,
+      messages: [message, ...updatedChat.messages],
+      lastReadMessage: fromSelf ? message : updatedChat.lastReadMessage
     }
   };
 }
 
 function handleAddChat(state, chat) {
-  return { ...state, [chat.id]: chat };
+  return { ...state, [chat.id]: makeChatData(chat) };
 }
 
 function handleRemoveChat(state, { id: chatId }) {
@@ -39,13 +42,24 @@ function handleSomeoneAction(state, data, adding) {
   return (adding ? handleAddChat : handleRemoveChat)(state, chat);
 }
 
+function makeChatData(apiData) {
+  return {
+    ...apiData,
+    selectedMessages: [],
+    messagesToMention: [],
+    isEditing: false,
+    editedMsgInitial: INITIAL_MENTIONED_DATA,
+    valuesBeforeEditing: INITIAL_MSG_DATA
+  };
+}
+
 const reducer = (state = initialState, action) => {
   switch (action.type) {
     // === Actual Chats ===
     case chats.SET_CHATS:
       return action.chats.reduce((newState, chat) => ({
         ...newState,
-        [chat.id]: chat
+        [chat.id]: makeChatData(chat)
       }), {});
     case chats.ADD_CHAT:
       return handleAddChat(state, action.newChat);
@@ -81,15 +95,9 @@ const reducer = (state = initialState, action) => {
       return handleNewMessage(state, action);
     case chats.MARK_READ: {
       const newState = { ...state };
-      Object.entries(action.data).forEach(([cId, info]) => {
-        const { messages, lastReadMessage } = info;
+      action.data.forEach(({ chat: { id: cId }, lastReadMessage, unreadCount }) => {
         newState[cId].lastReadMessage = lastReadMessage;
-        newState[cId].unreadCount -= messages.length;
-        newState[cId].messages.forEach(m => {
-          if (messages.some(rm => rm.id === m.id)) {
-            m.isRead = true;
-          }
-        });
+        newState[cId].unreadCount = unreadCount;
       });
 
       return newState;
@@ -111,6 +119,69 @@ const reducer = (state = initialState, action) => {
           : m
       );
       return newState;
+    }
+
+    // == Chat Window
+    case chats.SET_MESSAGES_TO_MENTION: {
+      const updatedChat = state[action.chatId];
+      return {
+        ...state,
+        [action.chatId]: { ...updatedChat, messagesToMention: action.messagesToMention }
+      };
+    }
+    case chats.CLICK_MESSAGE: {
+      const updatedChat = state[action.chatId];
+      const currSelectedMessages = updatedChat.selectedMessages;
+      const isSelected = currSelectedMessages.find(m => m.id === action.message.id);
+      return {
+        ...state,
+        [action.chatId]: {
+          ...updatedChat,
+          selectedMessages: isSelected
+            ? updatedChat.selectedMessages.filter(m => m.id !== action.message.id)
+            : [...updatedChat.selectedMessages, action.message]
+        }
+      };
+    }
+    case chats.CLEAR_SELECTED_MESSAGES: {
+      const updatedChat = state[action.chatId];
+      return {
+        ...state,
+        [action.chatId]: {
+          ...updatedChat,
+          selectedMessages: []
+        }
+      };
+    }
+    case chats.SET_IS_EDITING: {
+      const updatedChat = state[action.chatId];
+      return {
+        ...state,
+        [action.chatId]: {
+          ...updatedChat,
+          isEditing: action.isEditing
+        }
+      };
+    }
+    case chats.SET_VALUES_BEFORE_EDITING: {
+      const updatedChat = state[action.chatId];
+      return {
+        ...state,
+        [action.chatId]: {
+          ...updatedChat,
+          valuesBeforeEditing: applyUpd(action.upd, updatedChat.valuesBeforeEditing)
+        }
+      };
+    }
+    case chats.SET_EDITED_MSG_INITIAL: {
+      const updatedChat = state[action.chatId];
+      return {
+        ...state,
+        [action.chatId]: {
+          ...updatedChat,
+          editedMsgInitial: applyUpd(action.upd, updatedChat.editedMsgInitial)
+        }
+      };
     }
     default:
       return state;

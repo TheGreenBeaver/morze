@@ -8,6 +8,7 @@ import Box from '@material-ui/core/Box';
 import useCommonStyles from '../../theme/common';
 import useStyles from './styles/editable-avatar.styles';
 import HintButton from '../hint-button';
+import useReadFiles from '../../hooks/use-read-files';
 
 
 function EditableAvatar({ name, otherName, isActive, removeName }) {
@@ -26,6 +27,8 @@ function EditableAvatar({ name, otherName, isActive, removeName }) {
   const removeField = getFieldProps(removeName);
 
   const [showAvatarHint, setShowAvatarHint] = useState(false);
+
+  const readFiles = useReadFiles();
 
   return (
     <React.Fragment>
@@ -73,13 +76,14 @@ function EditableAvatar({ name, otherName, isActive, removeName }) {
             onChange={e => {
               const file = e.target.files[0];
               if (file) {
-                const fr = new FileReader();
-                fr.onload = loadEv => {
-                  setFieldValue(otherName, loadEv.target.result);
-                  setFieldValue(name, file);
-                  setFieldValue(removeName, false);
-                };
-                fr.readAsDataURL(file);
+                readFiles(
+                  [file],
+                  ({ valueUpd, displayUpd }) => {
+                    setFieldValue(otherName, displayUpd[0].url);
+                    setFieldValue(name, valueUpd[0].file);
+                    setFieldValue(removeName, false);
+                  }
+                )
               }
             }}
           />

@@ -20,6 +20,7 @@ function AutocompleteField({ name, options, onOpen, label, loading }) {
       value={field.value}
       onChange={(e, value) => helpers.setValue(value)}
       renderInput={params => <TextField {...params} label={label || startCase(name)} />}
+      disableCloseOnSelect
     />
   );
 }

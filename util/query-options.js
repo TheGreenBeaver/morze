@@ -76,7 +76,6 @@ const MESSAGE_FULL = {
           as: 'mentionedMessages'
         }
       ],
-      order: [['createdAt', 'DESC']]
     }
   ],
   order: [['createdAt', 'DESC']]

@@ -1,3 +1,15 @@
 import ChatWindow from './chat-window';
+import ChatWindowContext from '../../contexts/chat-window-context';
 
-export default ChatWindow;
+function WrappedChatWindow(props) {
+
+  return (
+    <ChatWindowContext chatId={props.chatId}>
+      <ChatWindow {...props} />
+    </ChatWindowContext>
+  )
+}
+
+WrappedChatWindow.propTypes = ChatWindow.propTypes;
+
+export default WrappedChatWindow;
