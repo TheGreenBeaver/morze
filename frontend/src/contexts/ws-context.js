@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { node } from 'prop-types';
 import { useDispatch } from 'react-redux';
-import { HOST, WS_ACTION_MAPPING } from '../util/constants';
+import { ERROR_RESP_THRESHOLD, HOST, WS_ACTION_MAPPING } from '../util/constants';
 import useErrorHandler from '../hooks/use-error-handler';
 import useAuth from '../hooks/use-auth';
 import { omit } from 'lodash';
@@ -51,9 +51,9 @@ function WsContext({ children }) {
       socket.onmessage = e => {
         const { url, status, data } = JSON.parse(e.data);
 
-        if (status && !handleBackendError({ response: { status } })) {
+        if (status >= ERROR_RESP_THRESHOLD && !handleBackendError({ response: { status } })) {
           setUnhandledError(data);
-        } else if (!status) {
+        } else {
           dispatch(WS_ACTION_MAPPING[url](data));
           setEventsData(curr => ({ ...curr, [url]: data }));
         }

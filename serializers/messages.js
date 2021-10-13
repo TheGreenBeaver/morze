@@ -1,6 +1,6 @@
 const { serializeAttachment } = require('./attachments');
 const { serializeUser } = require('./users');
-const { omit, sortBy } = require('lodash');
+const { omit, sortBy, difference } = require('lodash');
 const { isUpdated } = require('../util/misc');
 
 
@@ -15,8 +15,11 @@ function serializeLastRead(lastRead) {
   };
 }
 
-function serializeMessageRecursive(message, deeper = false) {
-  const toOmit = ['updatedAt', 'user_id', 'mentionedMessages', 'user', 'chat_id', 'chat', 'createdAt'];
+function serializeMessageRecursive(message, toKeep = [], deeper = false) {
+  const toOmit = difference(
+    ['updatedAt', 'user_id', 'mentionedMessages', 'user', 'chat_id', 'chat', 'createdAt', 'mentionedIn'],
+    toKeep
+  );
 
   const result = {
     ...omit(message.dataValues, toOmit),
@@ -28,7 +31,7 @@ function serializeMessageRecursive(message, deeper = false) {
     result.mentionedCount = (message.mentionedMessages || []).length;
   } else {
     result.mentionedMessages =
-      sortBy(message.mentionedMessages || [], 'createdAt').map(m => serializeMessageRecursive(m, true));
+      sortBy(message.mentionedMessages || [], 'createdAt').map(m => serializeMessageRecursive(m, toKeep,true));
     result.isUpdated = isUpdated(message);
   }
 

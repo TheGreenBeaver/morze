@@ -91,7 +91,19 @@ const setEditedMsgInitial = (chatId, upd) => ({
   type: chats.SET_EDITED_MSG_INITIAL,
   chatId,
   upd
-})
+});
+
+const setScrollToMessage = (chatId, messageAnchor) => ({
+  type: chats.SET_SCROLL_TO_MESSAGE,
+  chatId,
+  messageAnchor
+});
+
+const setDataToRebase = (chatId, dataToRebase) => ({
+  type: chats.SET_DATA_TO_REBASE,
+  chatId,
+  dataToRebase
+});
 
 export {
   setChats,
@@ -111,5 +123,7 @@ export {
   clearSelectedMessages,
   setIsEditing,
   setEditedMsgInitial,
-  setValuesBeforeEditing
+  setValuesBeforeEditing,
+  setScrollToMessage,
+  setDataToRebase
 };

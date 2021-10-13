@@ -13,9 +13,9 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'chat_id',
         as: 'chat'
       });
-      this.hasMany(models.MessageAttachment, {
+      this.belongsToMany(models.MessageAttachment, {
         foreignKey: 'message_id',
-        onDelete: 'CASCADE',
+        through: { model: models.AttachmentsRouting },
         as: 'attachments'
       });
       this.hasMany(models.UserChatMembership, {

@@ -1,4 +1,5 @@
 const { User, Chat, Message, MessageAttachment } = require('../models/index');
+const { Op } = require('sequelize');
 
 const userBasicAttrs = ['id', 'username', 'firstName', 'lastName', 'avatar', 'deletedAt'];
 const userSelfAttrs = [...userBasicAttrs, 'isVerified'];
@@ -6,6 +7,8 @@ const userAuthAttrs = ['id', 'password']
 
 const messageGlanceAttrs = ['text', 'createdAt', 'id', 'user_id'];
 const messageFullAttrs = [...messageGlanceAttrs, 'updatedAt'];
+
+const attachmentAttrs = ['id', 'file', 'type'];
 
 const DUMMY = {
   attributes: ['id']
@@ -28,7 +31,9 @@ const INCLUDE = {
   },
   Attachment: {
     model: MessageAttachment,
-    as: 'attachments'
+    as: 'attachments',
+    attributes: attachmentAttrs,
+    through: { attributes: ['isDirect'] }
   },
   MentionedMessage: {
     model: Message,
@@ -50,11 +55,28 @@ const USER_AUTH = {
   attributes: userAuthAttrs
 };
 
+const MESSAGE_WITH_ATTACHMENTS = {
+  ...DUMMY,
+  include: [
+    { ...INCLUDE.Attachment }
+  ]
+};
 const MESSAGE_GLANCE = {
   attributes: messageGlanceAttrs,
   include: [
     { ...INCLUDE.Attachment },
     { ...INCLUDE.MentionedMessage }
+  ]
+};
+const MESSAGE_WITH_PARENT = {
+  ...DUMMY,
+  include: [
+    {
+      model: Message,
+      as: 'mentionedIn',
+      ...DUMMY,
+      through: { attributes: [] }
+    }
   ]
 };
 const MESSAGE_FULL = {
@@ -66,19 +88,16 @@ const MESSAGE_FULL = {
       ...INCLUDE.MentionedMessage,
       include: [
         { ...INCLUDE.User },
-        {
-          model: MessageAttachment,
-          as: 'attachments',
-          attributes: ['id', 'file']
-        },
+        { ...INCLUDE.Attachment },
         {
           model: Message,
-          as: 'mentionedMessages'
+          as: 'mentionedMessages',
+          ...DUMMY
         }
       ],
     }
   ],
-  order: [['createdAt', 'DESC']]
+  order: [['createdAt', 'ASC']]
 };
 const MESSAGE_WITH_RECEIVERS = { ...MESSAGE_FULL };
 MESSAGE_WITH_RECEIVERS.include.push({ ...INCLUDE.ChatWithUsers });
@@ -121,13 +140,27 @@ const AUTH_TOKEN_LOG_IN = {
 //   };
 // }
 
-function withLastRead(needChatData) {
+function getChatOptions(needUsersList) {
+  const options = { ...CHAT_FULL };
+  if (needUsersList) {
+    options.include.push({
+      ...INCLUDE.User,
+      as: 'users'
+    });
+  }
+
+  options.include[0].order = [['createdAt', 'DESC']];
+
+  return options;
+}
+
+function withLastRead(needChatData, needUsersList) {
   return {
     include: [
       {
         model: Chat,
         as: 'chat',
-        ...(needChatData ? CHAT_FULL : DUMMY)
+        ...(needChatData ? getChatOptions(needUsersList) : DUMMY)
       },
       {
         model: Message,
@@ -146,7 +179,11 @@ function withChatMessages(filters) {
         model: Message,
         as: 'messages',
         ...MESSAGE_FULL,
-        where: filters
+        where: {
+          ...filters,
+          user_id: { [Op.not]: null }
+        },
+        order: [['createdAt', 'DESC']]
       }
     ]
   };
@@ -157,9 +194,11 @@ module.exports = {
   DUMMY,
 
   MESSAGE_GLANCE,
+  MESSAGE_WITH_ATTACHMENTS,
   MESSAGE_FULL,
   MESSAGE_WITH_RECEIVERS,
   MESSAGE_WITH_RECEIVERS_DUMMY,
+  MESSAGE_WITH_PARENT,
 
   CHAT_FULL,
   CHAT_WITH_USERS,
@@ -170,6 +209,7 @@ module.exports = {
   AUTH_TOKEN_LOG_IN,
 
   withLastRead,
-  withChatMessages
+  withChatMessages,
+  getChatOptions
 }
 

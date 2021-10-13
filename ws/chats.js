@@ -6,7 +6,7 @@ const { serializeMembershipBase } = require('../serializers/chats');
 const { serializeMessageRecursive } = require('../serializers/messages');
 const { NoSuchError, CustomError } = require('../util/custom-errors');
 const { onlyMembers } = require('../util/ws');
-const { DUMMY, CHAT_FULL, CHAT_WITH_USERS } = require('../util/query-options');
+const { DUMMY, CHAT_WITH_USERS, USER_BASIC, getChatOptions } = require('../util/query-options');
 const { listChats } = require('../util/method-handlers');
 
 
@@ -21,14 +21,12 @@ async function leave(data, { user, broadcast }) {
   const theChat = matchingChats[0];
   await theChat.removeUser(user);
   const notification = await theChat.createMessage({ text: `${userFullName(user)} left the chat` });
-  const members = theChat.users;
 
-  broadcast({ chat: { id: chatId }, notification }, {
-    extraCondition: client => onlyMembers(members, client),
-    adjustData: (data, client) => client.user === user
-      ? { chat: data.chat }
-      : { message: serializeMessageRecursive(data.notification) }
-  });
+  const getData = client => client.user === user
+    ? { chat: theChat }
+    : { message: serializeMessageRecursive(notification) };
+
+  broadcast(getData, { extraCondition: client => onlyMembers(theChat.users, client) });
 }
 
 function kick(data, { user, resp, broadcast }) {
@@ -66,12 +64,14 @@ async function create(data, { user, broadcast }) {
   await newChat.setUsers(invitedUsers, { through: { isAdmin: false } });
   await newChat.addUser(user, { through: { isAdmin: true } });
   const notification = await newChat.createMessage({ text: `${user.firstName} ${user.lastName} created the ${name || altName} Chat` });
-  await newChat.reload(CHAT_FULL);
-  broadcast(
-    serializeMembershipBase({ chat: newChat, lastReadMessage: notification }, 1), { // the notification is unread
-      extraCondition: client => onlyMembers(allInvitedUsers, client),
-      adjustData: (data, client) => ({ ...data, isAdmin: client.user === user })
-    });
+  await newChat.reload(getChatOptions(true));
+
+  const getData = client => ({
+    ...serializeMembershipBase({ chat: newChat, lastReadMessage: notification }, 1), // the notification is unread
+    isAdmin: client.user === user
+  });
+
+  broadcast(getData, { extraCondition: client => onlyMembers(allInvitedUsers, client) });
 }
 
 async function invite(data, { broadcast, user }) {
@@ -81,7 +81,7 @@ async function invite(data, { broadcast, user }) {
   }
 
   const { count, rows: invitedUsers } = await User.findAndCountAll({
-    where: { id: { [Op.in]: invitedIds } }, ...DUMMY
+    where: { id: { [Op.in]: invitedIds } }, ...USER_BASIC
   });
 
   if (count < invitedIds.length) {
@@ -95,42 +95,35 @@ async function invite(data, { broadcast, user }) {
   });
 
   const theChat = matchingChats[0];
-  const currentUsers = theChat.users;
+  const currentUsers = [...theChat.users];
 
   const notification = await theChat.createMessage({ text: `${user.firstName} ${user.lastName} invited ${namesList(invitedUsers)}` });
   await theChat.addUsers(invitedUsers, { through: { last_read_msg_id: notification.id } });
-  theChat.reload(CHAT_FULL);
+  await theChat.reload(getChatOptions(true));
 
-  broadcast({ theChat, notification }, {
-    extraCondition: client => onlyMembers(invitedUsers, client),
-    adjustData: (data, client) =>
-      currentUsers.includes(client.user)
-        ? { message: serializeMessageRecursive(data.notification) }
-        : { chat: serializeMembershipBase({ chat: data.theChat, lastReadMessage: data.notification }, 1) }
-  });
+  const getData = client => currentUsers.find(u => u.id === client.user.id)
+    ? { message: serializeMessageRecursive(notification), chat: { id: theChat.id } }
+    : { chat: serializeMembershipBase({ chat: theChat, lastReadMessage: notification }, 1) }
+
+  broadcast(getData, { extraCondition: client => onlyMembers(theChat.users, client) });
 }
 
 function list(data, { user, resp }) {
-  return listChats(user).then(resp);
+  return listChats(user, { needUsersList: true }).then(resp);
 }
 
-function edit(data, { user, broadcast }) {
+async function edit(data, { user, broadcast }) {
   const { name: newName, chat: chatId } = data;
-  return user
-    .getChats({ where: { id: chatId }, rejectOnEmpty: new NoSuchError('chat', chatId) })
-    .then(matchingChats => {
-      const theChat = matchingChats[0];
-      theChat.name = newName;
-      return theChat
-        .save()
-        .then(updChat =>
-          updChat
-            .getUsers()
-            .then(members => broadcast(updChat.dataValues, {
-              extraCondition: client => onlyMembers(members, client)
-            }))
-        )
-    })
+
+  const matchingChats = await user.getChats({ where: { id: chatId }, rejectOnEmpty: new NoSuchError('chat', chatId), ...CHAT_WITH_USERS });
+
+  const theChat = matchingChats[0];
+  theChat.name = newName;
+  const members = theChat.users;
+
+  await theChat.save();
+
+  return broadcast(theChat.dataValues, { extraCondition: client => onlyMembers(members, client) });
 }
 
 function remove(data, { user, resp, broadcast }) {

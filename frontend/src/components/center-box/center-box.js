@@ -21,7 +21,7 @@ function CenterBox({ children, ...otherProps }) {
 }
 
 CenterBox.propTypes = {
-  children: node.isRequired
+  children: node
 };
 
 export default CenterBox;

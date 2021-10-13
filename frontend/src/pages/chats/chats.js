@@ -6,11 +6,11 @@ import Box from '@material-ui/core/Box';
 import ChatWindow from '../../components/chat-window';
 import Drawer from '@material-ui/core/Drawer';
 import useStyles from './styles/chats.styles';
-import { setModalContent, setSidebarOpen } from '../../store/actions/general';
+import { pushModal, setSidebarOpen } from '../../store/actions/general';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import Typography from '@material-ui/core/Typography';
-import { first } from 'lodash';
+import { last } from 'lodash';
 import Divider from '@material-ui/core/Divider';
 import { Add, LibraryAdd, RotateLeft, RotateRight } from '@material-ui/icons';
 import HintButton from '../../components/hint-button';
@@ -20,6 +20,8 @@ import { Badge, useTheme } from '@material-ui/core';
 import AddChatModal from '../../components/modals/add-chat-modal';
 import { Skeleton } from '@material-ui/lab';
 import { useChats } from '../../contexts/chats-context';
+import SidebarSearchField from '../../components/search-field/sidebar-search-field';
+import { wAmount } from '../../util/misc';
 
 
 function Chats() {
@@ -80,7 +82,7 @@ function Chats() {
         title='Add chat'
         buttonProps={{
           onClick: () =>
-            dispatch(setModalContent({
+            dispatch(pushModal({
               body: <AddChatModal />,
               title: 'Create Chat'
             })),
@@ -93,9 +95,10 @@ function Chats() {
   }
 
   function getShortMessage(msg) {
+    const attCount = msg.attachments.filter(att => att.isDirect).length;
     return msg.text ||
-      (!!msg.attachments.length && `${msg.attachments.length} files`) ||
-      (!!msg.mentionedMessages.length && `> ${msg.mentionedMessages.length} messages`)
+      (!!attCount && wAmount(attCount, 'file')) ||
+      (!!msg.mentionedMessages.length && `> ${wAmount(msg.mentionedMessages.length, 'message')}`)
   }
 
   const addButton = noChats
@@ -122,12 +125,13 @@ function Chats() {
       <Drawer
         variant={screenIsSmall ? 'temporary' : 'permanent'}
         classes={{
-          paper: styles.drawerPaper,
+          paper: clsx(styles.drawerPaper, !screenIsSmall && styles.drawerPaperWideScreen),
           root: styles.drawer
         }}
         onClose={() => dispatch(setSidebarOpen(false))}
         open={sidebarOpen || !screenIsSmall}
       >
+        {screenIsSmall && <SidebarSearchField />}
         <Box
           display='flex'
           alignItems='center'
@@ -205,7 +209,7 @@ function Chats() {
                     classes={{ root: styles.itemText }}
                   >
                     <Typography color='textSecondary'>
-                      {getShortMessage(first(chat.messages))}
+                      {getShortMessage(last(chat.messages))}
                     </Typography>
                   </Badge>
                 </ListItem>

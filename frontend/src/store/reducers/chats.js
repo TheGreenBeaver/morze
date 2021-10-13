@@ -1,7 +1,7 @@
 import { chats } from '../actions/action-types';
 import { cloneDeep } from 'lodash';
 import { INITIAL_MENTIONED_DATA, INITIAL_MSG_DATA } from '../../util/constants';
-import { applyUpd } from '../../util/misc';
+import { applyUpd, getMsgAnchor } from '../../util/misc';
 
 
 const initialState = null;
@@ -9,16 +9,17 @@ const initialState = null;
 
 function handleNewMessage(state, { message, chatId, fromSelf }) {
   const updatedChat = state[chatId];
-
-  return {
-    ...state,
-    [chatId]: {
-      ...updatedChat,
-      unreadCount: fromSelf ? 0 : updatedChat.unreadCount + 1,
-      messages: [message, ...updatedChat.messages],
-      lastReadMessage: fromSelf ? message : updatedChat.lastReadMessage
-    }
+  const newChatData = {
+    ...updatedChat,
+    unreadCount: fromSelf ? 0 : updatedChat.unreadCount + 1,
+    messages: [...updatedChat.messages, message],
+    lastReadMessage: fromSelf ? message : updatedChat.lastReadMessage
   };
+  if (fromSelf) {
+    newChatData.scrollToMessage = getMsgAnchor(message.id, chatId);
+  }
+
+  return { ...state, [chatId]: newChatData };
 }
 
 function handleAddChat(state, chat) {
@@ -49,7 +50,10 @@ function makeChatData(apiData) {
     messagesToMention: [],
     isEditing: false,
     editedMsgInitial: INITIAL_MENTIONED_DATA,
-    valuesBeforeEditing: INITIAL_MSG_DATA
+    valuesBeforeEditing: INITIAL_MSG_DATA,
+    scrollToMessage: null,
+    dataToRebase: null,
+    messageListLoaded: false
   };
 }
 
@@ -87,7 +91,8 @@ const reducer = (state = initialState, action) => {
         ...state,
         [action.chatId]: {
           ...updatedChat,
-          messages: action.messages
+          messages: action.messages,
+          messagesListLoaded: true
         }
       };
     }
@@ -180,6 +185,26 @@ const reducer = (state = initialState, action) => {
         [action.chatId]: {
           ...updatedChat,
           editedMsgInitial: applyUpd(action.upd, updatedChat.editedMsgInitial)
+        }
+      };
+    }
+    case chats.SET_SCROLL_TO_MESSAGE: {
+      const updatedChat = state[action.chatId];
+      return {
+        ...state,
+        [action.chatId]: {
+          ...updatedChat,
+          scrollToMessage: action.messageAnchor
+        }
+      };
+    }
+    case chats.SET_DATA_TO_REBASE: {
+      const updatedChat = state[action.chatId];
+      return {
+        ...state,
+        [action.chatId]: {
+          ...updatedChat,
+          dataToRebase: action.dataToRebase
         }
       };
     }

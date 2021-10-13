@@ -9,6 +9,7 @@ import useCommonStyles from '../../theme/common';
 import useStyles from './styles/editable-avatar.styles';
 import HintButton from '../hint-button';
 import useReadFiles from '../../hooks/use-read-files';
+import { FILE_TYPES } from '../../util/constants';
 
 
 function EditableAvatar({ name, otherName, isActive, removeName }) {
@@ -82,7 +83,8 @@ function EditableAvatar({ name, otherName, isActive, removeName }) {
                     setFieldValue(otherName, displayUpd[0].url);
                     setFieldValue(name, valueUpd[0].file);
                     setFieldValue(removeName, false);
-                  }
+                  },
+                  [FILE_TYPES.img]
                 )
               }
             }}

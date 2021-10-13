@@ -6,7 +6,7 @@ import { useAxios } from './axios-context';
 import { isEqual } from 'lodash';
 import { attachmentToApi, isFile } from '../util/misc';
 import { node, number } from 'prop-types';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import {
   clickMessage,
   setEditedMsgInitial,
@@ -15,6 +15,7 @@ import {
   setValuesBeforeEditing,
   clearSelectedMessages
 } from '../store/actions/chats';
+import { useChats } from './chats-context';
 
 
 const Context = createContext({
@@ -35,7 +36,26 @@ const Context = createContext({
 
   selectedMessages: [],
   clickMessage: msg => {},
-  clearSelectedMessages: () => {}
+  clearSelectedMessages: () => {},
+
+  scrollToMessage: null,
+  dataToRebase: null,
+  messagesListLoaded: false,
+
+  chatData: {
+    name: '',
+    isAdmin: false,
+    lastReadMessage: null,
+    messages: [],
+    users: [],
+    unreadCount: 0,
+    id: null
+  },
+  slotData: {
+    rRef: null, // readable ref, use this for any calc operations
+    wRef: () => {}, // writeable ref, use this ONLY to pass to 'ref' prop
+    size: null
+  }
 });
 
 // This should only be used via the useChatWindow hook, where all the setters are wrapped in complete actions, combined
@@ -44,17 +64,29 @@ function useChatWindowContext() {
   return useContext(Context);
 }
 
-function ChatWindowContext({ children, chatId }) {
+function ChatWindowContext({ children, chatId, idx }) {
   const dispatch = useDispatch();
   const { send } = useWs();
   const { api } = useAxios();
+
+  const { slotSizes, slotRefs, getRef, allChats, forceOpenChat } = useChats();
   const {
     isEditing,
     editedMsgInitial,
     valuesBeforeEditing,
     messagesToMention,
-    selectedMessages
-  } = useSelector(state => state.chats[chatId]);
+    selectedMessages,
+    scrollToMessage,
+    dataToRebase,
+    messagesListLoaded,
+
+    name,
+    isAdmin,
+    lastReadMessage,
+    messages,
+    users,
+    unreadCount
+  } = (allChats[chatId] || {});
 
   return (
     <Context.Provider
@@ -75,6 +107,7 @@ function ChatWindowContext({ children, chatId }) {
         mentionAtChat: otherChat => {
           dispatch(setMessagesToMention(otherChat, [...selectedMessages]));
           dispatch(clearSelectedMessages(chatId));
+          forceOpenChat(otherChat);
         },
         reply: msg => dispatch(setMessagesToMention(chatId, [msg])),
         clearMentions: () => dispatch(setMessagesToMention(chatId, [])),
@@ -82,7 +115,26 @@ function ChatWindowContext({ children, chatId }) {
 
         selectedMessages,
         clickMessage: msg => dispatch(clickMessage(chatId, msg)),
-        clearSelectedMessages: () => dispatch(clearSelectedMessages(chatId))
+        clearSelectedMessages: () => dispatch(clearSelectedMessages(chatId)),
+
+        scrollToMessage,
+        dataToRebase,
+        messagesListLoaded,
+
+        chatData: {
+          name,
+          lastReadMessage,
+          messages,
+          isAdmin,
+          users,
+          unreadCount,
+          id: chatId
+        },
+        slotData: {
+          size: slotSizes[idx],
+          wRef: getRef(idx),
+          rRef: slotRefs[idx]
+        }
       }}
     >
       <Formik
@@ -96,7 +148,7 @@ function ChatWindowContext({ children, chatId }) {
             isEqual(attachments, editedMsgInitial.attachments) &&
             isEqual(messagesToMention.map(m => m.id), editedMsgInitial.mentionedMessages.map(m => m.id))
           ) {
-            dispatch(setIsEditing(false));
+            dispatch(setIsEditing(chatId, false));
             formikHelpers.setValues(valuesBeforeEditing);
             return;
           }
@@ -107,15 +159,9 @@ function ChatWindowContext({ children, chatId }) {
             return;
           }
 
-          formikHelpers.setSubmitting(true);
           const attachmentsToUpload = attachments.filter(isFile);
           const linkedAttachments = attachments.filter(att => !isFile(att)).map(attachmentToApi);
           let attachmentsToSend = [...linkedAttachments];
-          console.log({
-            attachments,
-            attachmentsToUpload,
-            linkedAttachments
-          });
 
           // Some files are fresh, not just URLs received from BE (can happen when editing a message with attachments)
           if (attachmentsToUpload.length) {
@@ -141,8 +187,8 @@ function ChatWindowContext({ children, chatId }) {
           }
           send(WS_ENDPOINTS.messages[isEditing ? 'edit' : 'send'], toSend);
           formikHelpers.setValues(isEditing ? valuesBeforeEditing : INITIAL_MSG_DATA);
-          setMessagesToMention(chatId, []);
-          setIsEditing(false);
+          dispatch(setMessagesToMention(chatId, []));
+          dispatch(setIsEditing(chatId, false));
         }}
       >
         {children}
@@ -153,6 +199,7 @@ function ChatWindowContext({ children, chatId }) {
 
 ChatWindowContext.propTypes = {
   children: node.isRequired,
+  idx: number.isRequired,
   chatId: number
 };
 

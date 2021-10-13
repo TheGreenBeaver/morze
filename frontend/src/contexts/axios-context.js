@@ -56,9 +56,6 @@ function AxiosContext({ children }) {
       requestArgs.unshift(other[optionsArgIdx - 1]);
     }
 
-    console.log(endpointConfig, [...other]);
-    console.log([theUrl, ...requestArgs]);
-
     return {
       call: () => instance.current[method.name](theUrl, ...requestArgs)
         .then(r => r.data)

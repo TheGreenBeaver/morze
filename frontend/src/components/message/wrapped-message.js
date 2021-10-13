@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { arrayOf, bool, number, object, shape, string } from 'prop-types';
 import { useChats } from '../../contexts/chats-context';
 import Box from '@material-ui/core/Box';
@@ -8,19 +8,27 @@ import useStyles from './styles/wrapped-message.styles';
 import clsx from 'clsx';
 import zDate from '../../util/dates';
 import useChatWindow from '../../hooks/use-chat-window';
+import { Adjust, DoneAll } from '@material-ui/icons';
+import CWBp from '../../util/chat-window-breakpoints';
+import { getMsgAnchor } from '../../util/misc';
+import { last } from 'lodash';
 
 
 function WrappedMessage({ msg, chatId, prevMsg }) {
   const { readMessage } = useChats();
-  const { selectedMessages, clickMessage } = useChatWindow();
+  const { selectedMessages, clickMessage, slotData: { size }, chatData } = useChatWindow();
+  const messageBoxRef = useRef(null);
 
   const fromChatBot = msg.user.fromChatBot
+  const isRead = zDate(msg.createdAt).isBefore(chatData.lastReadMessage?.createdAt);
 
   const styles = useStyles();
 
   const display = fromChatBot
     ? <ChatBotMessage msg={msg} readable chatId={chatId} />
     : <Box
+      id={getMsgAnchor(msg.id, chatId)}
+      ref={messageBoxRef}
       onMouseEnter={() => readMessage(msg.id, msg.createdAt, chatId)}
       display='flex'
       alignItems='center'
@@ -30,28 +38,40 @@ function WrappedMessage({ msg, chatId, prevMsg }) {
         !!selectedMessages.find(m => m.id === msg.id) && styles.oneMessageWrapperSelected,
       )}
       onClick={e => {
-        if (!fromChatBot) {
+        if (messageBoxRef.current && messageBoxRef.current.contains(e.target) && !fromChatBot) {
           e.stopPropagation();
           clickMessage(msg);
         }
       }}
     >
-      <RealUserMessage msg={msg} chatId={chatId} />
+      <RealUserMessage msg={msg} />
       {
         msg.mentionedMessages?.map(mentionedMsg =>
-          <RealUserMessage key={mentionedMsg.id} msg={mentionedMsg} isMentioned chatId={chatId} />
+          <RealUserMessage key={mentionedMsg.id} msg={mentionedMsg} isMentioned />
         )
       }
+      <Box
+        display='flex'
+        justifyContent='flex-end'
+        paddingTop={1}
+        width='100%'
+        paddingRight={size.lt(CWBp.names.large, CWBp.axis.hor) ? 2 : 7}
+      >
+        {isRead ? <DoneAll color='secondary' /> : <Adjust color='error' />}
+      </Box>
     </Box>;
 
   return (
     <React.Fragment>
-      {display}
-      {/* The Container has column-reverse; this would actually be above */}
       {
         zDate(msg.createdAt).notSameDate(prevMsg?.createdAt) &&
         <ChatBotMessage msg={{ text: zDate(msg.createdAt).fDate() }} />
       }
+      {
+        prevMsg?.id === chatData.lastReadMessage.id &&
+        <ChatBotMessage msg={{ text: 'Unread messages' }} />
+      }
+      {display}
     </React.Fragment>
   );
 }

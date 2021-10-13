@@ -10,6 +10,7 @@ const useStyles = makeStyles(theme => ({
     border: '2px solid',
     borderColor: 'transparent',
     cursor: 'pointer',
+    paddingBottom: theme.spacing(1),
 
     '&:hover': {
       borderColor: teal[50]

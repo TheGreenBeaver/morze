@@ -11,7 +11,7 @@ const clearError = () => setError(null);
 /**
  * @typedef ModalContent
  * @type {Object}
- * @property {string} title
+ * @property {string|undefined} title
  * @property {object} body
  */
 /**
@@ -19,12 +19,14 @@ const clearError = () => setError(null);
  * @param {ModalContent|null} modalContent
  * @returns {{modalContent, type: string}}
  */
-const setModalContent = modalContent => ({
-  type: general.SET_MODAL_CONTENT,
+const pushModal = modalContent => ({
+  type: general.PUSH_MODAL,
   modalContent
 });
 
-const closeModal = () => setModalContent(null);
+const closeModal = () => ({
+  type: general.CLOSE_MODAL
+});
 
 const setSidebarOpen = open => ({
   type: general.SET_SIDEBAR_OPEN,
@@ -34,7 +36,7 @@ const setSidebarOpen = open => ({
 export {
   setError,
   clearError,
-  setModalContent,
+  pushModal,
   closeModal,
   setSidebarOpen
 };

@@ -1,3 +1,7 @@
-import AttachmentsDisplay from './attachments-display';
+import InputAttachmentsDisplay from './input/attachments-display';
+import MessageAttachmentsDisplay from './message/attachments-display';
 
-export default AttachmentsDisplay;
+export {
+  InputAttachmentsDisplay,
+  MessageAttachmentsDisplay
+};

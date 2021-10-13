@@ -221,6 +221,37 @@ function insertOrMoveChat(
 /**
  *
  * @param {Array<number|null>} currentChatIds
+ * @param {number} currentRotation
+ * @param {boolean} screenIsSmall
+ * @param {number} chatId
+ * @returns string
+ */
+function forceOpenChat(
+  currentChatIds, currentRotation, screenIsSmall,
+  chatId
+) {
+  const rotationConfig = makeRotationConfig(currentRotation, currentChatIds, screenIsSmall);
+
+  if (currentChatIds.includes(chatId)) { // don't need to change anything, the chat is already opened
+    return `${LINKS.chats}/id=${makeChatIdsConfig(currentChatIds)}${rotationConfig}`;
+  }
+
+  const maxSlots = screenIsSmall ? CHAT_WINDOWS_CONFIG.maxSlots.small : CHAT_WINDOWS_CONFIG.maxSlots.large;
+  const firstEmptySlot = currentChatIds.indexOf(null);
+  let putIntoSlot;
+  if (firstEmptySlot !== -1) {
+    putIntoSlot = firstEmptySlot;
+  } else {
+    putIntoSlot = currentChatIds.length < maxSlots ? currentChatIds.length : 0;
+  }
+  const newChatIds = [...currentChatIds];
+  newChatIds[putIntoSlot] = chatId;
+  return `${LINKS.chats}/id=${makeChatIdsConfig(newChatIds)}${rotationConfig}`;
+}
+
+/**
+ *
+ * @param {Array<number|null>} currentChatIds
  * @param {number|null} chatId null if just a slot is added
  */
 function addSlot(currentChatIds, chatId = null) {
@@ -261,5 +292,6 @@ export {
   insertOrMoveChat,
   addSlot,
   removeSlot,
-  rotate
+  rotate,
+  forceOpenChat
 };

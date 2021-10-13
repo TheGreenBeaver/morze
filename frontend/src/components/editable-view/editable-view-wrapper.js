@@ -37,6 +37,8 @@ function EditableViewWrapper({ children, isEditable, extraActions, onSubmit, ini
                     formik.status.isEditing &&
                     <React.Fragment>
                       <Button
+                        variant='outlined'
+                        color='secondary'
                         onClick={() => {
                           formik.resetForm();
                           formik.setStatus({ isEditing: false });
@@ -44,12 +46,20 @@ function EditableViewWrapper({ children, isEditable, extraActions, onSubmit, ini
                       >
                         Cancel
                       </Button>
-                      <Button type='submit'>Save</Button>
+                      <Button
+                        type='submit'
+                        color='secondary'
+                      >
+                        Save
+                      </Button>
                     </React.Fragment>
                   }
                   {
                     !formik.status.isEditing &&
-                    <Button onClick={() => formik.setStatus({ isEditing: true })}>
+                    <Button
+                      color='secondary'
+                      onClick={() => formik.setStatus({ isEditing: true })}
+                    >
                       Edit
                     </Button>
                   }

@@ -45,7 +45,12 @@ function UserModal({ userData }) {
       isEditable={isCurrentUser}
       extraActions={
         isCurrentUser &&
-        <Button onClick={logOut} className={styles.logOutBtn}>
+        <Button
+          onClick={logOut}
+          className={styles.logOutBtn}
+          variant='outlined'
+          color='secondary'
+        >
           Log Out
         </Button>
       }
@@ -61,7 +66,7 @@ function UserModal({ userData }) {
           }
         });
         formData.set('noAvatar', values.noAvatar);
-        if (values.avatar !== userData.avatar) {
+        if (!values.noAvatar && values.avatar) {
           formData.append('avatar', values.avatar, values.avatar.name);
         }
         api(HTTP_ENDPOINTS.editUser, formData)

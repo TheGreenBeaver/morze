@@ -12,8 +12,7 @@ const useStyles = makeStyles(theme => ({
     minHeight: 320,
 
     [theme.breakpoints.down('sm')]: {
-      minWidth: 0,
-      width: '70vw'
+      minWidth: '70vw'
     }
   },
   placeholder: {

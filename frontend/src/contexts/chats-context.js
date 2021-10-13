@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { node } from 'prop-types';
 import { useWs, useWsEvent } from './ws-context';
 import { useSelector } from 'react-redux';
@@ -9,13 +9,16 @@ import {
   insertOrMoveChat,
   parseConfig,
   removeSlot,
-  rotate
+  rotate,
+  forceOpenChat
 } from '../util/chat-windows-config';
 import { debounce, pick } from 'lodash';
 import { CHAT_WINDOWS_CONFIG, WS_ENDPOINTS } from '../util/constants';
 import { useSnackbar } from 'notistack';
 import useScreenIsSmall from '../hooks/use-screen-is-small';
 import zDate from '../util/dates';
+import useMultiRef from '../hooks/use-multi-ref';
+import CWBp from '../util/chat-window-breakpoints';
 
 
 const Context = createContext({
@@ -31,6 +34,7 @@ const Context = createContext({
   addSlot: chatId => {},
   removeSlot: removedSlot => {},
   rotate: direction => {},
+  forceOpenChat: chatId => {},
   config: {
     chatIds: [],
     template: ''
@@ -43,7 +47,9 @@ const Context = createContext({
     moreThanOne: false,
     noChats: true,
   },
-  history: null,
+  slotRefs: [],
+  getRef: () => () => {},
+  slotSizes: []
 });
 
 function useChats() {
@@ -62,10 +68,14 @@ function ChatsContext({ children }) {
   const chats = useSelector(state => state.chats);
 
   const [messagesToRead, setMessagesToRead] = useState([]);
+  const [slotSizes, setSlotSizes] = useState(
+    [...Array(CHAT_WINDOWS_CONFIG.maxSlots.large)].map(() => new CWBp())
+  );
 
   const debouncedWs = useRef(debounce((currentSend, currentMessagesToRead) => {
     currentSend(WS_ENDPOINTS.messages.markRead, { messages: currentMessagesToRead });
   }, 300));
+  const { refs: slotRefs, getRef } = useMultiRef(CHAT_WINDOWS_CONFIG.maxSlots.large);
 
   const indicator = JSON.stringify(messagesToRead);
   useEffect(() => {
@@ -81,8 +91,23 @@ function ChatsContext({ children }) {
   );
 
   useEffect(() => {
-    send(WS_ENDPOINTS.chats.list)
+    send(WS_ENDPOINTS.chats.list);
   }, []);
+
+  const recalculateSizes = useCallback(() => {
+    setSlotSizes(slotRefs.current?.map(sRef => new CWBp(sRef?.getBoundingClientRect())));
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('resize', recalculateSizes);
+    return () => {
+      window.removeEventListener('resize', recalculateSizes);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    recalculateSizes();
+  }, [chatWindowsConfig, ...slotRefs.current]);
 
   if (chats == null) {
     return null;
@@ -121,6 +146,7 @@ function ChatsContext({ children }) {
         addSlot: chatId => history.push(addSlot(chatIds, chatId)),
         removeSlot: removedSlot => history.push(removeSlot(chatIds, removedSlot)),
         rotate: direction => history.push(rotate(chatIds, rotationDegrees, direction)),
+        forceOpenChat: chatId => history.push(forceOpenChat(chatIds, rotationDegrees, screenIsSmall, chatId)),
         config: pick(config, ['chatIds', 'template']),
         allChats: chats,
         screenIsSmall,
@@ -130,7 +156,9 @@ function ChatsContext({ children }) {
           noChats: !Object.values(chats).length,
           notMaxSlots: slotsAmount < maxSlots
         },
-        history,
+        slotRefs: slotRefs.current,
+        getRef,
+        slotSizes
       }}
     >
       {children}

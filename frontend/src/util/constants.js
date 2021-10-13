@@ -18,12 +18,10 @@ const SEARCH_TYPES = {
 const LINKS = {
   chats: '/chats',
   signIn: '/sign_in',
-  signUp: '/sign_up',
-  search: '/search'
+  signUp: '/sign_up'
 };
 const SIDEBAR_WIDTH = 260;
 const SIDEBAR_OFFSET_CLASS = 'z-sidebar-offset';
-const ONE_IMAGE_WRAPPER = 'z-one-image-wrapper';
 const FILE_TYPES = {
   img: 'img',
   doc: 'doc',
@@ -53,7 +51,17 @@ const INITIAL_MENTIONED_DATA = {
   mentionedMessages: [],
   id: 0
 };
-const YOUTUBE_HOSTS = ['youtube.com', 'youtu.be'];
+const YOUTUBE_HOSTS = {
+  com: 'youtube.com',
+  be: 'youtu.be'
+}
+const YOUTUBE_PREVIEW_SIZE = {
+  default: 'default',
+  medium: 'medium',
+  high: 'high',
+  standard: 'standard',
+  maxres: 'maxres',
+}
 
 const CHAT_WINDOWS_CONFIG = {
   baseAreaName: 'z-chat-window-',
@@ -69,6 +77,16 @@ const CHAT_WINDOWS_CONFIG = {
     small: /^id=(\d+|_)(,(\d+|_))?$/,
     large: /^id=(\d+|_)(,(\d+|_)){0,3}(&rotation=(90|180|270))?$/
   }
+};
+
+const CHAT_WINDOW_HEADER_HEIGHT = {
+  s: 42,
+  ml: 56
+};
+const AUTO_SCROLL_THRESHOLD = {
+  small: 1.15,
+  medium: 1.35,
+  large: 1.55
 };
 
 const HOST = process.env.REACT_APP_HOST || window.location.host;
@@ -105,6 +123,8 @@ const WS_ACTION_MAPPING = {
   [WS_ENDPOINTS.messages.remove]: deleteMessage,
   [WS_ENDPOINTS.messages.edit]: editMessage
 }
+
+const ERROR_RESP_THRESHOLD = 400;
 
 const API_VERSION = 1;
 const HTTP_METHODS = {
@@ -176,7 +196,6 @@ export {
   ERR_FIELD,
   SEARCH_TYPES,
   LINKS,
-  ONE_IMAGE_WRAPPER,
   FILE_EXT_MAPPING,
   FILE_TYPES,
   MSG_FIELD_NAMES,
@@ -185,6 +204,10 @@ export {
   MAX_FILE_SIZE,
   FILE_ERRORS,
   YOUTUBE_HOSTS,
+  CHAT_WINDOW_HEADER_HEIGHT,
+  YOUTUBE_PREVIEW_SIZE,
+
+  AUTO_SCROLL_THRESHOLD,
 
   SIDEBAR_WIDTH,
   SIDEBAR_OFFSET_CLASS,
@@ -194,6 +217,8 @@ export {
   HOST,
   WS_ENDPOINTS,
   WS_ACTION_MAPPING,
+
+  ERROR_RESP_THRESHOLD,
 
   HTTP_ENDPOINTS,
   API_VERSION

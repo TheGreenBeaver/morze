@@ -4,7 +4,7 @@ import ChatWindowContext from '../../contexts/chat-window-context';
 function WrappedChatWindow(props) {
 
   return (
-    <ChatWindowContext chatId={props.chatId}>
+    <ChatWindowContext chatId={props.chatId} idx={props.idx}>
       <ChatWindow {...props} />
     </ChatWindowContext>
   )

@@ -37,6 +37,9 @@ const theme = createTheme({
     },
     MuiDialogContent: {
       dividers: true
+    },
+    MuiListItem: {
+      disableRipple: true
     }
   },
 
@@ -64,12 +67,14 @@ const theme = createTheme({
       },
       colorPrimary: {
         color: grey[600],
+        transition: 'color 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms',
         '&:hover': {
           color: teal[500]
         }
       },
       colorSecondary: {
         color: grey[400],
+        transition: 'color 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms',
         '&:hover': {
           color: teal[300]
         }
@@ -78,6 +83,16 @@ const theme = createTheme({
     MuiBadge: {
       anchorOriginTopRightRectangle: {
         transform: 'scale(1) translate(120%, -50%)'
+      }
+    },
+    MuiListItem: {
+      root: {
+        '&:hover': {
+          backgroundColor: `${teal[50]} !important`
+        },
+        '&.Mui-selected': {
+          backgroundColor: `${teal[100]} !important`
+        }
       }
     }
   }

@@ -47,28 +47,32 @@ function wsErr(ws, code, endpoint) {
 /**
  *
  * @param {any} wsServer
- * @param {WsResponse} response
  * @param {WebSocket=} current provide this only when broadcasting to everyone except current
  * @param {function(WebSocket): Promise=} extraCondition
- * @param {function(Object, WebSocket): Object} adjustData
+ * @param {(function(WebSocket): any) | Object} dataConfig
+ * @param {number} status
+ * @param {string} url
  */
 function wsBroadcast(
-  wsServer, response,
-  { current, extraCondition = dummyResolve, adjustData = v => v } = {}
+  wsServer, url, status, dataConfig,
+  { current, extraCondition = dummyResolve } = {}
 ) {
   wsServer.clients.forEach(client => {
     if (
       (!current || client !== current) &&
       client.readyState === WebSocket.OPEN
     ) {
-      const adjustedData = adjustData(response.data, client);
-      extraCondition(client).then(() => wsResp({ ...response, data: adjustedData }, client)).catch(noOp);
+      const data = typeof dataConfig === 'function' ? dataConfig(client) : dataConfig;
+      const response = { url, data, status };
+      extraCondition(client).then(() => {
+        wsResp(response, client)
+      }).catch(noOp);
     }
   });
 }
 
 function onlyMembers(members, client) {
-  return new Promise((resolve, reject) => members.map(m => m.id).includes(client.user.id) ? resolve() : reject());
+  return new Promise((resolve, reject) => members.find(m => m.id === client.user.id) ? resolve() : reject());
 }
 
 function handleError(ws, endpoint, e) {

@@ -7,9 +7,11 @@ const { FILE_TYPES } = require('../util/constants');
 module.exports = (sequelize, DataTypes) => {
   class MessageAttachment extends Model {
     static associate(models) {
-      this.belongsTo(models.Message, {
-        foreignKey: 'message_id',
-      });
+      this.belongsToMany(models.Message, {
+        foreignKey: 'attachment_id',
+        through: { model: models.AttachmentsRouting },
+        as: 'messages'
+      })
     }
   }
   MessageAttachment.init({

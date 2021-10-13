@@ -33,7 +33,7 @@ router.post('/youtube', async (req, res, next) => {
     const { videoId } = req.body;
     const apiKey = getVar('YOUTUBE_API_KEY');
     const youtubeDataRaw = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=id,player,snippet&id=${videoId}&key=${apiKey}`
+      `https://www.googleapis.com/youtube/v3/videos?part=id,player,snippet,contentDetails&id=${videoId}&key=${apiKey}`
     );
     if (!youtubeDataRaw.ok) {
       // 421

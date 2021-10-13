@@ -1,23 +1,32 @@
 const { onlyMembers } = require('../util/ws');
+const { getHost } = require('../util/misc');
 const { serializeMessageRecursive } = require('../serializers/messages');
 const { NoSuchError, CustomError, OneValidationError } = require('../util/custom-errors');
 const { User, MessageAttachment, UserChatMembership, sequelize, Message } = require('../models/index');
 const {
-  withLastRead, MESSAGE_FULL, USER_BASIC, DUMMY, MESSAGE_GLANCE, MESSAGE_WITH_RECEIVERS, MESSAGE_WITH_RECEIVERS_DUMMY
+  MESSAGE_FULL, MESSAGE_GLANCE,
+  MESSAGE_WITH_RECEIVERS, MESSAGE_WITH_RECEIVERS_DUMMY, MESSAGE_WITH_ATTACHMENTS, MESSAGE_WITH_PARENT,
+  USER_BASIC, withLastRead, CHAT_WITH_USERS, DUMMY
 } = require('../util/query-options');
 const settings = require('../config/settings');
 const { QueryTypes, Op } = require('sequelize');
 const { differenceWith } = require('lodash');
+const fs = require('fs');
+const path = require('path');
 
 
 async function send(data, { user, broadcast }) {
-  const { chat: chatId, text, attachments: filePaths, mentionedMessages } = data;
+  const { chat: chatId, text, attachments: filePaths, mentionedMessages: mentionedMessageIds } = data;
 
-  if (!text && (!filePaths || !filePaths.length) && (!mentionedMessages || !mentionedMessages.length)) {
+  if (!text && (!filePaths || !filePaths.length) && (!mentionedMessageIds || !mentionedMessageIds.length)) {
     throw new CustomError({ [settings.ERR_FIELD]: 'A message without attachments or mentioned messages must have some text' });
   }
 
-  const matchingChats = await user.getChats({ where: { id: chatId }, rejectOnEmpty: new NoSuchError('chat', chatId) });
+  const matchingChats = await user.getChats({
+    where: { id: chatId },
+    ...CHAT_WITH_USERS,
+    rejectOnEmpty: new NoSuchError('chat', chatId)
+  });
 
   const theChat = matchingChats[0];
   const attachments = (filePaths || []).map(fp => ({ file: fp.file, type: fp.type }));
@@ -32,36 +41,70 @@ async function send(data, { user, broadcast }) {
     }
   );
   await theChat.UserChatMembership.setLastReadMessage(newMessage);
-  if (mentionedMessages && mentionedMessages.length) {
-    try {
-      await newMessage.setMentionedMessages(mentionedMessages);
-    } catch (e) {
-      // TODO: parse Error and check which messages don't exist
-      throw new NoSuchError('messages', [], 'mentionedMessages');
+  if (mentionedMessageIds && mentionedMessageIds.length) {
+    const mentionedMessages = await Message.findAll({
+      where: { id: mentionedMessageIds }, ...MESSAGE_GLANCE
+    });
+    if (mentionedMessages.length !== mentionedMessageIds.length) {
+      throw new NoSuchError('message', differenceWith(mentionedMessageIds, mentionedMessages, (i, m) => m.i === i));
+    }
+    await newMessage.setMentionedMessages(mentionedMessages);
+    for (const mm of mentionedMessages) {
+      if (mm.attachments.length) {
+        await newMessage.addAttachments(mm.attachments, { through: { isDirect: false } });
+      }
     }
   }
   await newMessage.reload(MESSAGE_FULL);
-  const members = await theChat.getUsers(DUMMY);
-  broadcast({ chat: { id: chatId }, message: serializeMessageRecursive(newMessage) }, {
-    extraCondition: client => onlyMembers(members, client),
-    adjustData: (data, client) => ({ ...data, fromSelf: client.user === user })
+
+  const getData = client => ({
+    chat: { id: chatId },
+    message: serializeMessageRecursive(newMessage),
+    fromSelf: client.user === user
   });
+
+  broadcast(getData, { extraCondition: client => onlyMembers(theChat.users, client) });
+}
+
+async function makeIndirectAttachments(msg, attachments) {
+  for (const parentMsg of msg.mentionedIn) {
+    await parentMsg.addAttachments(attachments, { through: { isDirect: false } });
+
+    await parentMsg.reload(MESSAGE_WITH_PARENT);
+    if (parentMsg.mentionedIn.length) {
+      await makeIndirectAttachments(parentMsg, attachments);
+    }
+  }
 }
 
 async function edit(data, { user, broadcast }) {
-  const { message: messageId, text: newText, attachments: newAttachments, mentionedMessages: newMentionedMessages } = data;
+  const { message: messageId, text: newText, attachments: newAttachments, mentionedMessages: newMentionedMessageIds } = data;
 
+  const queryOptions = { ...MESSAGE_GLANCE };
+  queryOptions.include.push({
+    model: Message,
+    as: 'mentionedIn',
+    ...DUMMY,
+    through: { attributes: [] }
+  });
   const matchingMessages = await user.getMessages({
-    where: { id: messageId }, ...MESSAGE_GLANCE, rejectOnEmpty: new NoSuchError('message', messageId)
+    where: { id: messageId }, ...queryOptions, rejectOnEmpty: new NoSuchError('message', messageId)
   });
 
   const theMessage = matchingMessages[0];
 
-  const { text: oldText, attachments: oldAttachments, mentionedMessages: oldMentionedMessages } = theMessage;
+  const { text: oldText, attachments: allOldAttachments, mentionedMessages: oldMentionedMessages } = theMessage;
+  const oldAttachments = allOldAttachments.filter(att => att.AttachmentsRouting.isDirect);
 
-  const willHaveText = newText == null ? !!oldText : !!newText;
-  const willHaveAttachments = newAttachments == null ? !!oldAttachments.length : !!newAttachments.length;
-  const willHaveMentionedMessages = newMentionedMessages == null ? !!oldMentionedMessages.length : !!newMentionedMessages.length;
+  const willHaveText = newText == null
+    ? !!oldText
+    : !!newText;
+  const willHaveAttachments = newAttachments == null
+    ? !!oldAttachments.length
+    : !!newAttachments.length;
+  const willHaveMentionedMessages = newMentionedMessageIds == null
+    ? !!oldMentionedMessages.length
+    : !!newMentionedMessageIds.length;
 
   if (!willHaveText && !willHaveAttachments && !willHaveMentionedMessages) {
     throw new CustomError({ [settings.ERR_FIELD]: 'A message without attachments or mentioned messages must have some text' });
@@ -71,22 +114,41 @@ async function edit(data, { user, broadcast }) {
     theMessage.text = newText;
     await theMessage.save();
   }
+
   if (newAttachments != null) {
-    const attachmentsToCreate = newAttachments.filter(att => att.id == null);
-    const newAttachmentsData = await MessageAttachment.bulkCreate(attachmentsToCreate.map(fp => ({ file: fp.file, type: fp.type })));
-    await theMessage.setAttachments([...newAttachmentsData, ...newAttachments.filter(att => att.id != null).map(att => att.id)]);
+    const attachmentsToDelete = differenceWith(oldAttachments, newAttachments, (oldA, newA) => oldA.id === newA.id);
+    if (attachmentsToDelete.length) {
+      // No need to destroy indirect routings, CASCADE will do it for us
+      await MessageAttachment.destroy({ where: { id: attachmentsToDelete.map(att => att.id) } });
+      for (const att of attachmentsToDelete) {
+        const pathToFile = path.join(settings.SRC_DIRNAME, att.file.replace(`${getHost()}/`, ''));
+        await fs.promises.unlink(pathToFile);
+      }
+    }
+
+    const attachmentsToCreate = newAttachments.filter(att => !att.saved);
+    if (attachmentsToCreate.length) {
+      const newAttachmentsData = await MessageAttachment.bulkCreate(attachmentsToCreate.map(fp => ({ file: fp.file, type: fp.type })));
+      await makeIndirectAttachments(theMessage, newAttachmentsData);
+      await theMessage.addAttachments(newAttachmentsData);
+    }
   }
-  if (newMentionedMessages != null) {
-    await theMessage.setMentionedMessages(newMentionedMessages.map(mMsg => mMsg.id));
+
+  if (newMentionedMessageIds != null) {
+    const newMentionedMessages = await Message.findAll({
+      where: { id: newMentionedMessageIds },
+      ...MESSAGE_WITH_ATTACHMENTS
+    });
+    await theMessage.setMentionedMessages(newMentionedMessages);
+    for (const mm of newMentionedMessages) {
+      await theMessage.addAttachments(mm.attachments, { through: { isDirect: false } });
+    }
   }
 
   await theMessage.reload(MESSAGE_WITH_RECEIVERS);
-  broadcast({
-      chat: { id: theMessage.chat_id },
-      message: serializeMessageRecursive(theMessage)
-    }, {
-      extraCondition: client => onlyMembers(theMessage.chat.users, client),
-    }
+  broadcast(
+    { chat: { id: theMessage.chat_id }, message: serializeMessageRecursive(theMessage)},
+    { extraCondition: client => onlyMembers(theMessage.chat.users, client) }
   );
 }
 
@@ -99,12 +161,13 @@ async function remove(data, { user, broadcast }) {
   if (matchingMessages.length !== messageIds) {
     throw new NoSuchError('message', differenceWith(messageIds, matchingMessages, (i, m) => m.i === i));
   }
-  const theMessage = matchingMessages[0];
-  const members = theMessage.chat.users;
-  await theMessage.destroy();
-  broadcast({ messages: messageIds }, {
-    extraCondition: client => onlyMembers(members, client)
-  });
+  for (const theMessage of matchingMessages) {
+    const members = theMessage.chat.users;
+    await theMessage.destroy();
+    broadcast({ messages: messageIds }, {
+      extraCondition: client => onlyMembers(members, client)
+    });
+  }
 }
 
 async function markRead(data, { user, resp }) {

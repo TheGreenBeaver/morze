@@ -18,9 +18,9 @@ const useStyles = makeStyles(theme => ({
     }
   },
   drawerPaper: {
-    ...matchToolbar(theme, 'paddingTop', v => v + theme.spacing(1)),
     width: SIDEBAR_WIDTH
   },
+  drawerPaperWideScreen: matchToolbar(theme, 'paddingTop', v => v + theme.spacing(1)),
   drawer: {
     width: SIDEBAR_WIDTH
   },

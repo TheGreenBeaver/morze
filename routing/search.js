@@ -54,16 +54,14 @@ router.get('/', async (req, res, next) => {
           break;
         case SEARCH_TYPES.chats:
           searchResult = await listChats(req.user, {
-            name: { [Op.iLike]: `%${term}%` }
+            filtering: { '$chat.name$': { [Op.iLike]: `%${term}%` } }
           });
           break;
         case SEARCH_TYPES.messages:
           const allChats = await req.user.getChats({
-            where: { id: chatId },
-            rejectOnEmpty: new NoSuchError('chat', chatId),
             ...withChatMessages({ text: { [Op.iLike]: `%${term}%` } })
           });
-          searchResult = allChats.map(c => c.messages.map(m => serializeMessageRecursive(m))).flat();
+          searchResult = allChats.map(c => c.messages.map(m => serializeMessageRecursive(m, ['chat_id']))).flat();
           break;
         default:
       }

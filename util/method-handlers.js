@@ -44,11 +44,11 @@ async function authorizeWithToken({ username, password }, res) {
   }
 }
 
-function listChats(user, filtering) {
+function listChats(user, { filtering, needUsersList } = {}) {
   return UserChatMembership.findAll({
     where: { user_id: user.id, ...filtering },
     attributes: ['isAdmin'],
-    ...withLastRead(true)
+    ...withLastRead(true, needUsersList)
   })
     .then(memberships => {
       const getUnreadCounts = memberships.map(({ chat, lastReadMessage }) =>

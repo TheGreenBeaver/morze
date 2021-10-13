@@ -1,6 +1,5 @@
 import { makeStyles } from '@material-ui/core';
 import { matchToolbar } from '../../../util/misc';
-import { teal } from '@material-ui/core/colors';
 
 
 const useStyles = makeStyles(theme => ({
@@ -21,29 +20,9 @@ const useStyles = makeStyles(theme => ({
     bottom: 0,
     zIndex: 20
   },
-  chatHeaderWrapper: {
-    padding: `${theme.spacing(1)}px ${theme.spacing(2)}px ${theme.spacing(1)}px ${theme.spacing(3)}px`,
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    zIndex: 10,
-    background: theme.palette.background.paper,
-    ...matchToolbar(theme, 'height', v => v * 0.9),
-  },
-  dragIndicator: {
-    color: theme.palette.grey[400],
-    '&:hover': {
-      color: theme.palette.secondary.light
-    }
-  },
 
   messagesWrapper: {
-    ...matchToolbar(theme, 'paddingTop', v => v * 0.9 + theme.spacing(2)),
-    paddingLeft: theme.spacing(3),
-    paddingRight: theme.spacing(3),
-    paddingBottom: theme.spacing(1)
-  },
-
-  mentionedMessagesDisplay: {
-    
+    padding: theme.spacing(3, 3, 1, 3),
   }
 }));
 

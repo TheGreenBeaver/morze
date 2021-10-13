@@ -13,11 +13,17 @@ import { useAxios } from '../contexts/axios-context';
 import { v4 as uuid } from 'uuid';
 import { isYouTubeLinkUsed } from '../util/misc';
 import queryString  from 'query-string';
+import { useDispatch } from 'react-redux';
+import { setDataToRebase } from '../store/actions/chats';
+import { useCallback } from 'react';
+import useCachedFunction from './use-cached-function';
 
 
 function useChatWindow() {
   const { setValues, values, setFieldValue } = useFormikContext();
   const { api } = useAxios();
+
+  const dispatch = useDispatch();
 
   const {
     setIsEditing,
@@ -33,7 +39,12 @@ function useChatWindow() {
     reply,
     messagesToMention,
     clearMentions,
-    clearSelectedMessages
+    clearSelectedMessages,
+    chatData,
+    slotData,
+    scrollToMessage,
+    dataToRebase,
+    messagesListLoaded
   } = useChatWindowContext();
   const readFiles = useReadFiles();
 
@@ -50,10 +61,11 @@ function useChatWindow() {
   }
 
   function startEditing(msg) {
+    const ownAttachments = msg.attachments.filter(att => att.isDirect);
     const editedMsgValues = {
       text: msg.text,
-      attachments: msg.attachments.map(att => ({ fId: att.id, file: att.file, type: att.type })),
-      asDataUrls: msg.attachments.map(att => ({ fId: att.id, url: att.file, type: att.type }))
+      attachments: ownAttachments.map(att => ({ fId: att.id, file: att.file, type: att.type, saved: att.saved })),
+      asDataUrls: ownAttachments.map(att => ({ fId: att.id, url: att.file, type: att.type }))
     };
     setIsEditing(true);
     setValuesBeforeEditing(values);
@@ -67,7 +79,6 @@ function useChatWindow() {
   }
 
   function addAttachments(files) {
-    console.log(files)
     readFiles(
       files,
       ({ valueUpd, displayUpd }) => {
@@ -80,7 +91,11 @@ function useChatWindow() {
   function addAttachmentsByLinks(links) {
     const valueUpd = [];
     const displayUpd = [];
-    let unreadAmount = links.length;
+    // skip ones that are already uploaded
+    const validLinks = links.filter(link =>
+      !attachmentsValues.find(att => att.file === link || isYouTubeLinkUsed(att.file?.links, link))
+    );
+    let unreadAmount = validLinks.length;
 
     const checkFinish = () => {
       if (--unreadAmount === 0) {
@@ -89,47 +104,54 @@ function useChatWindow() {
       }
     }
 
-    for (const link of links) {
-      // skip ones that are already uploaded
-      if (!attachmentsValues.find(att => att.file === link || isYouTubeLinkUsed(att.file?.links, link))) {
-        let url;
-        try {
-          url = new URL(link);
-        } catch {
-          // skip invalid urls
+    for (const link of validLinks) {
+      let url;
+      try {
+        url = new URL(link);
+      } catch {
+        // skip invalid urls
+        checkFinish();
+        continue;
+      }
+
+      const { host, search: rawSearch, pathname } = url;
+      const search = queryString.parse(rawSearch);
+      if (Object.values(YOUTUBE_HOSTS).includes(host)) { // youtube
+        let videoId;
+        if (host === YOUTUBE_HOSTS.be) {
+          videoId = pathname.replace('/', '');
+        } else {
+          videoId = search.v;
+        }
+
+        if (!videoId) {
           checkFinish();
           continue;
         }
 
-        const { host, search: rawSearch } = url;
-        const search = queryString.parse(rawSearch);
-        if (YOUTUBE_HOSTS.includes(host) && !!rawSearch && !!search.v) { // youtube
-          const videoId = search.v;
-
-          api(HTTP_ENDPOINTS.youtube, { videoId }).call()
-            .then(ytData => {
-              valueUpd.push({ fId: ytData.id, file: ytData.file, type: ytData.type });
-              displayUpd.push({ fId: ytData.id, url: ytData.file, type: ytData.type });
-              checkFinish()
-            })
-            .catch(e => {
-              console.log(e);
-              checkFinish();
-            });
-        } else { // images
-          const image = document.createElement('img');
-          image.setAttribute('src', link);
-          image.onload = () => {
-            const fId = uuid();
-            valueUpd.push({ fId, file: link, type: FILE_TYPES.img });
-            displayUpd.push({ fId, url: link, type: FILE_TYPES.img });
+        api(HTTP_ENDPOINTS.youtube, { videoId }).call()
+          .then(ytData => {
+            valueUpd.push({ fId: ytData.id, file: ytData.file, type: ytData.type, saved: false });
+            displayUpd.push({ fId: ytData.id, url: ytData.file, type: ytData.type });
             checkFinish();
-          };
-          image.onerror = e => {
+          })
+          .catch(e => {
             console.log(e);
             checkFinish();
-          }
-        }
+          });
+      } else { // images
+        const image = document.createElement('img');
+        image.setAttribute('src', link);
+        image.onload = () => {
+          const fId = uuid();
+          valueUpd.push({ fId, file: link, type: FILE_TYPES.img, saved: false });
+          displayUpd.push({ fId, url: link, type: FILE_TYPES.img });
+          checkFinish();
+        };
+        image.onerror = e => {
+          console.log(e);
+          checkFinish();
+        };
       }
     }
   }
@@ -144,6 +166,20 @@ function useChatWindow() {
       attachmentsDisplay.filter(ad => ad.fId !== fId)
     );
   }
+
+  const _saveData = useCachedFunction(
+    (_chatId, _values) => dispatch(setDataToRebase(_chatId, _values))
+  );
+
+  function saveData() {
+    _saveData(chatData.id, values);
+  }
+
+  const rebaseData = useCallback(() => {
+    if (dataToRebase) {
+      setValues(dataToRebase);
+    }
+  }, [dataToRebase]);
 
   return {
     isEditing,
@@ -162,7 +198,13 @@ function useChatWindow() {
     messagesToMention,
     clearMentions,
     clearSelectedMessages,
-    addAttachmentsByLinks
+    addAttachmentsByLinks,
+    slotData,
+    chatData,
+    scrollToMessage,
+    saveData,
+    rebaseData,
+    messagesListLoaded
   };
 }
 

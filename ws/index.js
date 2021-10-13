@@ -28,18 +28,15 @@ function useWs(server) {
       if (handler) {
         handler(message.data, {
           user,
-          resp: toSend => wsResp({ data: toSend, url: endpoint }, ws),
-          broadcast: (toSend, { skipCurrent, extraCondition, adjustData } = {}) => {
-            const args = [wsServer, { data: toSend, url: endpoint }];
+          resp: (toSend, status = httpStatus.OK) => wsResp({ data: toSend, url: endpoint, status }, ws),
+          broadcast: (dataConfig, { skipCurrent, extraCondition, status = httpStatus.OK } = {}) => {
+            const args = [wsServer, endpoint, status, dataConfig];
             const config = {};
             if (skipCurrent) {
               config.current = ws;
             }
             if (extraCondition) {
               config.extraCondition = extraCondition;
-            }
-            if (adjustData) {
-              config.adjustData = adjustData;
             }
             if (!isEmpty(config)) {
               args.push(config);

@@ -1,4 +1,4 @@
-import { last } from 'lodash';
+import { last, padStart, dropWhile, uniqBy } from 'lodash';
 import { FILE_ERRORS, FILE_EXT_MAPPING, FILE_TYPES, MAX_FILE_SIZE } from './constants';
 import zDate from './dates';
 import { v4 as uuid } from 'uuid';
@@ -36,12 +36,16 @@ function isFile(obj) {
 }
 
 function attachmentToApi(att) {
-  const { fId, file, type } = att;
-  return {
+  const { file, type, saved, fId } = att;
+  const result =  {
     file: type === FILE_TYPES.youtube ? JSON.stringify(file) : file,
-    id: typeof fId === 'string' || !fId ? null : fId,
-    type
+    type, saved
   };
+  if (saved) {
+    result.id = fId;
+  }
+
+  return result;
 }
 
 function isYouTubeLinkUsed(usedLinks, newLink) {
@@ -49,13 +53,15 @@ function isYouTubeLinkUsed(usedLinks, newLink) {
     return false;
   }
   const { host: newHost, search: newSearchRaw, pathname: newPathname } = new URL(newLink);
+
   const newSearch = queryString.parse(newSearchRaw);
   for (const oldLink of usedLinks) {
     const { host: oldHost, search: oldSearchRaw, pathname: oldPathname } = new URL(oldLink);
+
     const oldSearch = queryString.parse(oldSearchRaw);
-    const sameHost = oldHost === newHost;
+    const sameHost = oldHost.replace('www.', '') === newHost.replace('www.', '');
     const samePathname = oldPathname === newPathname;
-    const sameVideoId = !!newSearch.v && newSearch.v === oldSearch.v;
+    const sameVideoId = (!newSearchRaw && !oldSearchRaw) || (newSearch.v === oldSearch.v);
     if (sameHost && samePathname && sameVideoId) {
       return true;
     }
@@ -75,8 +81,11 @@ function isFileType(type, file) {
   return regExp.test(file.name || file);
 }
 
-function getOriginalFileName(rawFileName) {
-  const spl = last(rawFileName.split('/')).split('-');
+function getOriginalFileName(file) {
+  if (file instanceof File) {
+    return file.name;
+  }
+  const spl = last(file.split('/')).split('-');
   return spl.slice(2).join('-');
 }
 
@@ -84,7 +93,7 @@ function msgIsRead(msg, chatData) {
   return zDate(msg.createdAt).isBefore(chatData.lastReadMessage.createdAt);
 }
 
-function readFilesGeneric(files, onRead, alertErrors) {
+function readFilesGeneric(files, onRead, alertErrors, availableExt = Object.keys(FILE_EXT_MAPPING)) {
   const valueUpd = [];
   const displayUpd = [];
   const errors = {
@@ -103,7 +112,7 @@ function readFilesGeneric(files, onRead, alertErrors) {
   };
 
   for (const file of files) {
-    const extFits = Object.keys(FILE_EXT_MAPPING).map(ext => isFileType(ext, file)).some(isExt => isExt);
+    const extFits = availableExt.map(ext => isFileType(ext, file)).some(isExt => isExt);
     if (!extFits) {
       errors[FILE_ERRORS.ext].push(file.name);
       if (--unreadAmount === 0) {
@@ -124,7 +133,7 @@ function readFilesGeneric(files, onRead, alertErrors) {
       const fr = new FileReader();
       fr.onload = loadEv => {
         const fId = uuid();
-        valueUpd.push({ file, fId, type: FILE_TYPES.img });
+        valueUpd.push({ file, fId, type: FILE_TYPES.img, saved: false });
         displayUpd.push({ fId, url: loadEv.target.result, type: FILE_TYPES.img });
         if (--unreadAmount === 0) {
           finish();
@@ -133,7 +142,7 @@ function readFilesGeneric(files, onRead, alertErrors) {
       fr.readAsDataURL(file);
     } else {
       const fId = uuid();
-      valueUpd.push({ file, fId, type: FILE_TYPES.doc });
+      valueUpd.push({ file, fId, type: FILE_TYPES.doc, saved: false });
       const url = URL.createObjectURL(file);
       displayUpd.push({ fId, url, type: FILE_TYPES.doc });
       if (--unreadAmount === 0) {
@@ -147,6 +156,42 @@ function applyUpd(upd, obj) {
   return typeof upd === 'function' ? upd(obj) : upd;
 }
 
+function objectToSelectOptions(obj) {
+  return Object.entries(obj).map(([key, value]) => ({
+    label: key,
+    value
+  }));
+}
+
+function formatYouTubeDuration(durationStr) {
+  const days = durationStr.match(/\d+(?=D)/)?.[0];
+  const hours = durationStr.match(/\d+(?=H)/)?.[0];
+  const minutes = durationStr.match(/\d+(?=M)/)?.[0];
+  const seconds = durationStr.match(/\d+(?=S)/)?.[0];
+  const rawResParts = [days, hours, minutes || '00', seconds || '00'];
+  const cleanResParts = dropWhile(rawResParts, pt => !pt).map(pt => padStart(pt, 2, '0'));
+  return cleanResParts.join(':');
+}
+
+function wAmount(amount, text) {
+  return `${amount} ${text}${amount === 1 ? '' : 's'}`;
+}
+
+function compareStr(strA, strB) {
+  return strA.toLowerCase().trim().includes(strB.toLowerCase().trim());
+}
+
+function getChatArchives(chatData) {
+  return uniqBy(chatData.messages.map(m => m.attachments).flat(), 'id');
+}
+
+function getMsgAnchor(msgId, chatId) {
+  if (!msgId && !chatId) {
+    return undefined;
+  }
+  return `msg-anchor-${msgId}-${chatId}`;
+}
+
 export {
   applyToOneOrMany,
   matchToolbar,
@@ -157,5 +202,11 @@ export {
   isFile,
   applyUpd,
   attachmentToApi,
-  isYouTubeLinkUsed
+  isYouTubeLinkUsed,
+  objectToSelectOptions,
+  formatYouTubeDuration,
+  wAmount,
+  compareStr,
+  getChatArchives,
+  getMsgAnchor
 };

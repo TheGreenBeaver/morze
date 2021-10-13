@@ -12,8 +12,8 @@ function useDebouncedApiCall(endpointConfig, deps, {
 ) {
   const apiRef = useRef(null);
   const debouncedFunc = useRef(debounce(
-    currentApi => {
-      beforeAny();
+    (currentApi, ...currentDeps) => {
+      beforeAny(...currentDeps);
       currentApi.call().then(onSuccess).catch(onError).finally(onAny);
     },
     800
@@ -28,7 +28,7 @@ function useDebouncedApiCall(endpointConfig, deps, {
     if (extraCondition(...deps)) {
       const newApi = api(endpointConfig, ...deps);
       apiRef.current = newApi;
-      debouncedFunc.current(newApi);
+      debouncedFunc.current(newApi, ...deps);
     }
   }, [consistentDeps]);
 }

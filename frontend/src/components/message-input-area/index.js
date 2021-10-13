@@ -4,17 +4,43 @@ import useStyles from './styles/message-input-area.styles';
 import SubmittableTextArea from './submittable-text-area';
 import MessageAttachment from './message-attachment';
 import MentionedMessagesDisplay from './mentioned-messages-display';
-import AttachmentsDisplay from '../attachments-display';
+import { InputAttachmentsDisplay } from '../attachments-display';
 import IconButton from '@material-ui/core/IconButton';
-import { Send } from '@material-ui/icons';
+import { CheckCircleOutline, Close, Send } from '@material-ui/icons';
+import Box from '@material-ui/core/Box';
+import useChatWindow from '../../hooks/use-chat-window';
+import Typography from '@material-ui/core/Typography';
+import useCommonStyles from '../../theme/common';
+import { object } from 'prop-types';
 
 
-function MessageInputArea() {
+function MessageInputArea({ innerRef }) {
   const styles = useStyles();
+  const commonStyles = useCommonStyles();
+
+  const { isEditing, cancelEditing } = useChatWindow();
 
   return (
-    <React.Fragment>
-      <MentionedMessagesDisplay />
+    <div ref={innerRef}>
+      {
+        isEditing &&
+        <Box
+          display='flex'
+          alignItems='center'
+          paddingTop={1}
+          className={commonStyles.inputAreaHorizontalAlign}
+        >
+          <Typography
+            variant='subtitle1'
+            color='textSecondary'
+          >
+            Editing message
+          </Typography>
+          <IconButton onClick={cancelEditing} size='small'>
+            <Close />
+          </IconButton>
+        </Box>
+      }
       <Form className={styles.inputWrapper}>
         <MessageAttachment />
         <SubmittableTextArea
@@ -22,12 +48,19 @@ function MessageInputArea() {
           placeholder='Type your message...'
         />
         <IconButton color='secondary' type='submit'>
-          <Send />
+          {isEditing ? <CheckCircleOutline /> : <Send />}
         </IconButton>
       </Form>
-      <AttachmentsDisplay />
-    </React.Fragment>
+      <Box>{/* maxHeight='30%' overflow='auto'>*/}
+        <MentionedMessagesDisplay />
+        <InputAttachmentsDisplay />
+      </Box>
+    </div>
   );
 }
+
+MessageInputArea.propTypes = {
+  innerRef: object
+};
 
 export default MessageInputArea;

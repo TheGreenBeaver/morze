@@ -3,15 +3,15 @@ import Toolbar from '@material-ui/core/Toolbar';
 import logo from '../../assets/img/logo.svg';
 import AppBar from '@material-ui/core/AppBar';
 import useStyles from './styles/header.styles';
-import SearchField from '../search-field';
 import Box from '@material-ui/core/Box';
 import Avatar from '@material-ui/core/Avatar';
 import { useDispatch, useSelector } from 'react-redux';
 import useScreenIsSmall from '../../hooks/use-screen-is-small';
-import { setModalContent, setSidebarOpen } from '../../store/actions/general';
+import { pushModal, setSidebarOpen } from '../../store/actions/general';
 import { UserModal } from '../modals';
 import IconButton from '@material-ui/core/IconButton';
 import { Close, Menu } from '@material-ui/icons';
+import HeaderSearchField from '../search-field/header-search-field';
 
 
 function Header() {
@@ -46,11 +46,11 @@ function Header() {
           className={styles.rightBlock}
           right={0}
         >
-          {!screenIsSmall && <SearchField expandable />}
+          {!screenIsSmall && <HeaderSearchField />}
           <Avatar
             src={avatar}
             classes={{ root: styles.avatar }}
-            onClick={() => dispatch(setModalContent({
+            onClick={() => dispatch(pushModal({
               title: `${firstName} ${lastName}`,
               body: <UserModal userData={userData} />
             }))}

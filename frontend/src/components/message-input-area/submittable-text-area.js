@@ -2,16 +2,13 @@ import React from 'react';
 import { useFormikContext } from 'formik';
 import TextField from '@material-ui/core/TextField';
 import { MSG_FIELD_NAMES } from '../../util/constants';
-import { InputAdornment } from '@material-ui/core';
-import { Close } from '@material-ui/icons';
-import IconButton from '@material-ui/core/IconButton';
 import useChatWindow from '../../hooks/use-chat-window';
 import getUrls from 'get-urls';
 
 
 function SubmittableTextArea(props) {
   const { submitForm, getFieldProps, setSubmitting, setFieldValue } = useFormikContext();
-  const { addAttachments, isEditing, cancelEditing, addAttachmentsByLinks } = useChatWindow();
+  const { addAttachments, addAttachmentsByLinks } = useChatWindow();
 
   const textField = MSG_FIELD_NAMES.text;
 
@@ -53,21 +50,6 @@ function SubmittableTextArea(props) {
       }}
       multiline
       maxRows={4}
-      InputProps={{
-        endAdornment:
-          isEditing &&
-          <InputAdornment position='end'>
-            <IconButton
-              color='secondary'
-              onClick={e => {
-                e.stopPropagation();
-                cancelEditing();
-              }}
-            >
-              <Close />
-            </IconButton>
-          </InputAdornment>
-      }}
       {...props}
     />
   );

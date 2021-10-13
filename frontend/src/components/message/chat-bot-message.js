@@ -4,6 +4,7 @@ import Box from '@material-ui/core/Box';
 import Divider from '@material-ui/core/Divider';
 import Typography from '@material-ui/core/Typography';
 import { useChats } from '../../contexts/chats-context';
+import { getMsgAnchor } from '../../util/misc';
 
 
 function ChatBotMessage({ msg, readable, chatId }) {
@@ -15,6 +16,7 @@ function ChatBotMessage({ msg, readable, chatId }) {
       gridTemplateColumns='1fr 2fr 1fr'
       gridColumnGap={8}
       alignItems='center'
+      paddingBottom={1}
       width='100%'
       maxWidth={600}
       onMouseOver={() => {
@@ -22,6 +24,7 @@ function ChatBotMessage({ msg, readable, chatId }) {
           readMessage(msg.id, msg.createdAt, chatId);
         }
       }}
+      id={getMsgAnchor(msg.id, chatId)}
     >
       <Divider/>
       <Typography color='textSecondary' align='center'>{msg.text}</Typography>
@@ -33,7 +36,8 @@ function ChatBotMessage({ msg, readable, chatId }) {
 ChatBotMessage.propTypes = {
   msg: shape({
     text: string.isRequired,
-    createdAt: string
+    createdAt: string,
+    id: number
   }).isRequired,
   readable: bool,
   chatId: number
